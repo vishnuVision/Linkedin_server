@@ -5,8 +5,8 @@ const cookieOption = {
     secure: true
 }
 
-const sendResponse = (res, status, message, success, data, userToken, isAdmin) => {
-    if (!userToken) {
+const sendResponse = (res, status, message, success, data, cookie) => {
+    if (!cookie) {
         return res
             .status(status)
             .json({
@@ -18,7 +18,7 @@ const sendResponse = (res, status, message, success, data, userToken, isAdmin) =
     else {
         return res
             .status(status)
-            .cookie("userToken", userToken, cookieOption)
+            .cookie("userToken", cookie, cookieOption)
             .json({
                 success,
                 message,

@@ -2,13 +2,13 @@ import mongoose,{ Schema, Types } from "mongoose";
 const { models } = mongoose;
 
 const experienceSchema = Schema({
-    companyId:{
-        type:Types.ObjectId,
-        ref:"Page",
+    company:{
+        type:String,
+        required:true
     },
     title: String,
-    startDate: Date,
-    endDate: Date,
+    startYear: Date,
+    endYear: Date,
     description: String,
     media: [
         {
@@ -30,9 +30,13 @@ const experienceSchema = Schema({
     },
     isPresent:{
         type:Boolean,
-        default:false,
-        required:false
+        default:true,
+        required:true
     }
 },{timestamps: true});
 
 export const Experience = models?.Experience || mongoose.model("Experience", experienceSchema);
+
+// type:Types.ObjectId,
+//         ref:"Page",
+//         required:true

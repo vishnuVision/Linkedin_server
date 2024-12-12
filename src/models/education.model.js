@@ -3,14 +3,13 @@ const { models } = mongoose;
 
 const educationSchema = Schema({
     school:{
-        type:Types.ObjectId,
-        ref:"Page",
+        type:String,
         required:true
     },
     degree: String,
     fieldOfStudy: String,
-    startDate: Date,
-    endDate: Date,
+    startYear: Date,
+    endYear: Date,
     grade: String,
     activities: String,
     description: String,
@@ -24,3 +23,7 @@ const educationSchema = Schema({
 },{timestamps: true});
 
 export const Education = models?.Education || mongoose.model("Education", educationSchema);
+
+// type:Types.ObjectId,
+//         ref:"Page",
+//         required:true

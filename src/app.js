@@ -7,7 +7,8 @@ import cors from "cors";
 import { v2 as cloudinary } from 'cloudinary';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { socketAuthenticator } from "./middlewares/Socketmiddleware.js"
+import { socketAuthenticator } from "./middlewares/Socketmiddleware.js";
+import router from './routes/index.js';
 
 const userSockets = new Map();
 
@@ -77,7 +78,7 @@ app.get("/",(req,res)=>{
     res.send("Hello World");
 })
 
-// app.use("/api/v1",router);
+app.use("/api/v1",router);
 
 app.use(errorMiddleware);
 

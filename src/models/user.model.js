@@ -7,10 +7,7 @@ const userSchema = new Schema({
         required: true,
         unique: true
     },
-    password:{
-        type: String,
-        required: true
-    },
+    password:String,
     username:String,
     firstName: String,
     lastName: String,
@@ -21,7 +18,7 @@ const userSchema = new Schema({
     profileShow: {
         type: String,
         enum: ["connection","anyone","none"],
-        default:"public"
+        default:"anyone"
     },
     industry: String,
     educations: [
@@ -40,7 +37,7 @@ const userSchema = new Schema({
     city: String,
     phoneNumber: String,
     address: String,
-    birthDay: Date,
+    birthday: Date,
     views: Number,
     followers: [
         {
@@ -56,8 +53,8 @@ const userSchema = new Schema({
     ],
     pronouns:{
         type: String,
-        enum: ["He/Him","She/Her","They/Them","Other","Please Select"],
-        default:"Please Select"
+        enum: ["He/Him","She/Her","They/Them","Other",""],
+        default:""
     },
     about:String,
     website:String,
