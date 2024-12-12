@@ -7,7 +7,6 @@ import jwt from "jsonwebtoken";
 const login = async (req, res, next) => {
     try {
         const { email } = req.body;
-        console.log(email)
 
         if (!email)
             return sendResponse(res, 400, "All fields are required", false, null, null);
