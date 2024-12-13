@@ -4,20 +4,23 @@ const { models } = mongoose;
 const postSchema = Schema({
     text:String,
     media: [
-        {
-            title: String,
-            description: String,
-            url: String
-        }
+        String
     ],
     viewPriority:{
         type:String,
-        enum:["anyone","connection"]
+        enum:["anyone","connection"],
+        default:"anyone"
     },
-    likes:[Types.ObjectId],
     author:{
         type:Types.ObjectId,
-        ref:"User"
+        ref:"User",
+        ref:"Page"
+    },
+    referenceId:{
+        type:Types.ObjectId,
+        ref:"Group",
+        ref:"Event",
+        ref:"Newsletter",
     }
 },{timestamps: true});
 

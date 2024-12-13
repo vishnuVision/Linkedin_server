@@ -3,13 +3,20 @@ const { models } = mongoose;
 
 const educationSchema = Schema({
     school:{
-        type:String,
-        required:true
+        type:Schema.Types.ObjectId,
+        ref: "Page",
+        required: true
     },
     degree: String,
     fieldOfStudy: String,
-    startYear: Date,
-    endYear: Date,
+    startYear: {
+        type: Date,
+        required: true
+    },
+    endYear: {
+        type: Date,
+        required: true
+    },
     grade: String,
     activities: String,
     description: String,
@@ -20,10 +27,12 @@ const educationSchema = Schema({
             url: String
         }
     ],
+    isPresent:{
+        type:Boolean,
+        default:false,
+        required:true
+    }
 },{timestamps: true});
 
 export const Education = models?.Education || mongoose.model("Education", educationSchema);
 
-// type:Types.ObjectId,
-//         ref:"Page",
-//         required:true

@@ -1,13 +1,12 @@
-import { Education } from "../models/education.model.js";
-import { Experience } from "../models/experience.model.js";
-import { User } from "../models/user.model.js";
-import { sendResponse } from "../utils/SendResponse.js";
+import { Education } from "../../models/user/education.model.js";
+import { Experience } from "../../models/user/experience.model.js";
+import { User } from "../../models/user/user.model.js";
+import { sendResponse } from "../../utils/SendResponse.js";
 import jwt from "jsonwebtoken";
 
 const login = async (req, res, next) => {
     try {
         const { email } = req.body;
-        console.log(email)
 
         if (!email)
             return sendResponse(res, 400, "All fields are required", false, null, null);
@@ -29,9 +28,9 @@ const login = async (req, res, next) => {
 }
 
 const register = async (req, res, next) => {
+    console.log(req.body);
     try {
         const { email, password,birthday,firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
-        
         if (!email || !firstName || !lastName || !location || !avatar || !birthday)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
@@ -68,6 +67,7 @@ const register = async (req, res, next) => {
 
         return sendResponse(res, 200, "user signup successfully!", true, userData, token);
     } catch (error) {
+        console.log(error)
         res.status(500).json({ success: false, message: "Something went wrong" });
     }
 }
@@ -102,9 +102,24 @@ const logout = async (req, res, next) => {
     }
 }
 
+const deleteUser = async (req,res,next) => {
+    try {
+        if(!req.user)
+            return sendResponse(res, 400, "please login!", false, null, null);
+
+        return res
+        .status(200)
+        .clearCookie("userToken")
+        .json({ success: true, message: "user logout successfully!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Something went wrong" });
+    }
+}
+
 export {
     login,
     register,
     getUserDetails,
-    logout
+    logout,
+    deleteUser
 }

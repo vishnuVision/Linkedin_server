@@ -3,8 +3,9 @@ const { models } = mongoose;
 
 const experienceSchema = Schema({
     company:{
-        type:String,
-        required:true
+        type: Schema.Types.ObjectId,
+        ref: "Page",
+        required: true
     },
     title: String,
     startYear: Date,
@@ -30,13 +31,9 @@ const experienceSchema = Schema({
     },
     isPresent:{
         type:Boolean,
-        default:true,
+        default:false,
         required:true
     }
 },{timestamps: true});
 
 export const Experience = models?.Experience || mongoose.model("Experience", experienceSchema);
-
-// type:Types.ObjectId,
-//         ref:"Page",
-//         required:true

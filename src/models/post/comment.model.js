@@ -2,23 +2,23 @@ import mongoose,{ Schema, Types } from "mongoose";
 const { models } = mongoose;
 
 const commentSchema = Schema({
-    postId:{
+    referenceId:{
         type:Types.ObjectId,
-        ref:"Post"
+        ref:"Post",
+        ref:"Article"
     },
     text:String,
-    media: [
-        {
-            title: String,
-            description: String,
-            url: String
-        }
-    ],
-    likes:[Types.ObjectId],
+    media:String,
     owner:{
-        types:Types.ObjectId,
+        type:Types.ObjectId,
         ref:"User"
     },
+    subComments:[
+        {
+            type:Types.ObjectId,
+            ref:"Comment"
+        }
+    ]
 },{timestamps: true});
 
 export const Comment = models?.Comment || mongoose.model("Comment", commentSchema);
