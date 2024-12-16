@@ -86,9 +86,9 @@ const getAllPostDetails = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const {followers} = await User.findById(req.user.id);
+        const {followers,following} = await User.findById(req.user.id);
 
-        const post = await Post.find({$or:[{viewPriority:"anyone"},{author:followers,viewPriority:"connection"}]});
+        const post = await Post.find({$or:[{viewPriority:"anyone"},{author:{ $in: [...followers, ...following,req.user.id] },viewPriority:"connection"}]});
 
         if (!post)
             return next(new ErrorHandler("Post not updated Properly!", 400));

@@ -10,11 +10,19 @@ const educationSchema = Schema({
     degree: String,
     fieldOfStudy: String,
     startYear: {
-        type: Date,
+        type: String,
+        required: true
+    },
+    startMonth: {
+        type: String,
         required: true
     },
     endYear: {
-        type: Date,
+        type: String,
+        required: true
+    },
+    startMonth: {
+        type: String,
         required: true
     },
     grade: String,
@@ -22,14 +30,19 @@ const educationSchema = Schema({
     description: String,
     media: [
         {
-            title: String,
-            description: String,
+            // title: String,
+            // description: String,
             url: String
         }
     ],
     isPresent:{
         type:Boolean,
         default:false,
+        required:true
+    },
+    alumini:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
         required:true
     }
 },{timestamps: true});

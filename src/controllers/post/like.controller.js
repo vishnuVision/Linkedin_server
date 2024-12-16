@@ -13,11 +13,6 @@ const addLike = async (req,res,next) => {
         if(!postId)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const post = await Post.findById(postId);
-
-        if (!post)
-            return next(new ErrorHandler("Post not found!", 400));
-
         const createLike = await Like.create({ owner: req.user.id, post: postId });
 
         if (!createLike)
@@ -38,11 +33,6 @@ const removeLike = async (req,res,next) => {
 
         if(!postId)
             return next(new ErrorHandler("All fields are required", 400));
-
-        const post = await Post.findById(postId);
-
-        if (!post)
-            return next(new ErrorHandler("Post not found!", 400));
 
         const removeLike = await Like.deleteMany({ owner: req.user.id, post: postId });
 

@@ -33,6 +33,11 @@ const experienceSchema = Schema({
         type:Boolean,
         default:false,
         required:true
+    },
+    employee:{
+        type:Schema.Types.ObjectId,
+        ref:"User",
+        required:true
     }
 },{timestamps: true});
 

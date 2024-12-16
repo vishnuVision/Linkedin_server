@@ -1,6 +1,7 @@
 import { Education } from "../../models/user/education.model.js";
 import { Experience } from "../../models/user/experience.model.js";
 import { User } from "../../models/user/user.model.js";
+import { ErrorHandler } from "../../utils/ErrorHandler.js";
 import { sendResponse } from "../../utils/SendResponse.js";
 import jwt from "jsonwebtoken";
 
@@ -23,12 +24,11 @@ const login = async (req, res, next) => {
 
         return sendResponse(res, 200, "user signin successfully!", true, user, token);
     } catch (error) {
-        res.status(500).json({ success: false, message: "Something went wrong" });
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
 const register = async (req, res, next) => {
-    console.log(req.body);
     try {
         const { email, password,birthday,firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
         if (!email || !firstName || !lastName || !location || !avatar || !birthday)
@@ -67,8 +67,7 @@ const register = async (req, res, next) => {
 
         return sendResponse(res, 200, "user signup successfully!", true, userData, token);
     } catch (error) {
-        console.log(error)
-        res.status(500).json({ success: false, message: "Something went wrong" });
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
@@ -84,7 +83,7 @@ const getUserDetails = async (req, res, next) => {
 
         return sendResponse(res, 200, "user fetched successfully!", true, userData, null);
     } catch (error) {
-        res.status(500).json({ success: false, message: "Something went wrong" });
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
@@ -98,7 +97,7 @@ const logout = async (req, res, next) => {
         .clearCookie("userToken")
         .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Something went wrong" });
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 
@@ -112,7 +111,7 @@ const deleteUser = async (req,res,next) => {
         .clearCookie("userToken")
         .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Something went wrong" });
+        return next(new ErrorHandler(error.message, 500));
     }
 }
 

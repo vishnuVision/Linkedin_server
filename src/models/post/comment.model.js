@@ -5,13 +5,21 @@ const commentSchema = Schema({
     referenceId:{
         type:Types.ObjectId,
         ref:"Post",
-        ref:"Article"
+        // ref:"Article",
     },
     text:String,
     media:String,
     owner:{
         type:Types.ObjectId,
         ref:"User"
+    },
+    isSubComment:{
+        type:Boolean,
+        default:false
+    },
+    parentComment:{
+        type:Types.ObjectId,
+        ref:"Comment"
     },
     subComments:[
         {

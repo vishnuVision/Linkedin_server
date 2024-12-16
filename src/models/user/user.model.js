@@ -11,6 +11,7 @@ const userSchema = new Schema({
     username:String,
     firstName: String,
     lastName: String,
+    additionalName: String,
     avatar: String,
     backgroundImage: String,
     bio: String,
@@ -36,6 +37,10 @@ const userSchema = new Schema({
     region: String,
     city: String,
     phoneNumber: String,
+    phoneType:{
+        type:String,
+        enum:["Mobile","Work","Home"],
+    },
     address: String,
     birthday: Date,
     views: Number,

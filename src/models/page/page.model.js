@@ -4,7 +4,7 @@ const { models } = mongoose;
 const pageSchema = Schema({
     type:{
         type: String,
-        enum: ["company","schhol","event"],
+        enum: ["company","school","event"],
         required: true
     },
     name:{
@@ -33,6 +33,9 @@ const pageSchema = Schema({
     logo:{
         type: String,
         required: true
+    },
+    coverImage:{
+        type: String,
     },
     tagline:{
         type: String,
