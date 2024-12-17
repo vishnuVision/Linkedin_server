@@ -30,32 +30,17 @@ const login = async (req, res, next) => {
 
 const register = async (req, res, next) => {
     try {
-        const { email, password,birthday,firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
-        if (!email || !firstName || !lastName || !location || !avatar || !birthday)
+        const { email, password} = req.body;
+
+        if (!email)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
-        if (!isStudent && (!mostRecentJob || !mostRecentCompany))
-            return sendResponse(res, 400, "All fields are required", false, null, null);
+        const user = await User.findOne({email});
 
-        if (isStudent && (!school || !startYear || !endYear))
-            return sendResponse(res, 400, "All fields are required", false, null, null);
+        if(user)
+            return sendResponse(res, 400, "User already exists", false, null, null);
 
-        let userData;
-        if (isStudent) {
-            const educations = await Education.create({ school, startYear, endYear });
-
-            if (!educations)
-                return sendResponse(res, 400, "education not created Properly!", false, null, null);
-
-            userData = await User.create({ email, password, firstName, lastName, location, avatar, educations, birthday });
-        }
-        else {
-            const experiences = await Experience.create({ company: mostRecentCompany, title: mostRecentJob });
-            if (!experiences)
-                return sendResponse(res, 400, "experience not created Properly!", false, null, null);
-
-            userData = await User.create({ email, password, firstName, lastName, location, avatar, experiences, birthday });
-        }
+        const userData = await User.create({ email });
 
         if (!userData)
             return sendResponse(res, 400, "user not signup Properly!", false, null, null);
@@ -66,6 +51,48 @@ const register = async (req, res, next) => {
             return sendResponse(res, 400, "user not signup Properly!", false, null, null);
 
         return sendResponse(res, 200, "user signup successfully!", true, userData, token);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
+const addReuiredDetails = async (req,res,next) => {
+    try {
+        if(!req.user)
+            return sendResponse(res, 400, "Please login", false, null, null);
+
+        const { birthday,firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
+
+        if (!firstName || !lastName || !location || !avatar || !birthday)
+            return sendResponse(res, 400, "All fields are required", false, null, null);
+
+        if (!isStudent && (!mostRecentJob || !mostRecentCompany))
+            return sendResponse(res, 400, "All fields are required", false, null, null);
+
+        if (isStudent && (!school || !startYear || !endYear))
+            return sendResponse(res, 400, "All fields are required", false, null, null);
+
+        let userData;
+        if (isStudent) {
+            const educations = await Education.create({ school, startYear, endYear,alumini:req.user.id });
+
+            if (!educations)
+                return sendResponse(res, 400, "education not created Properly!", false, null, null);
+
+            userData = await User.findByIdAndUpdate(req.user.id,{ firstName, lastName, location, avatar, educations, birthday },{new:true});
+        }
+        else {
+            const experiences = await Experience.create({ company: mostRecentCompany, title: mostRecentJob,employee:req.user.id });
+            if (!experiences)
+                return sendResponse(res, 400, "experience not created Properly!", false, null, null);
+
+            userData = await User.findByIdAndUpdate(req.user.id,{ firstName, lastName, location, avatar, experiences, birthday },{new:true});
+        }
+
+        if (!userData)
+            return sendResponse(res, 400, "user profile not updated Properly!", false, null, null);
+
+        return sendResponse(res, 200, "user profile updated successfully!", true, userData, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -120,5 +147,6 @@ export {
     register,
     getUserDetails,
     logout,
-    deleteUser
+    deleteUser,
+    addReuiredDetails
 }

@@ -11,19 +11,18 @@ const educationSchema = Schema({
     fieldOfStudy: String,
     startYear: {
         type: String,
-        required: true
+        // required: true
     },
     startMonth: {
         type: String,
-        required: true
+        // required: true
     },
     endYear: {
         type: String,
-        required: true
+        // required: true
     },
-    startMonth: {
+    endMonth:{
         type: String,
-        required: true
     },
     grade: String,
     activities: String,
