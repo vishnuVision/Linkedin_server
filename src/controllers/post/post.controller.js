@@ -3,6 +3,7 @@ import { ErrorHandler } from "../../utils/ErrorHandler.js";
 import { uploadOnCloudinary,uploadLargeVideo } from "../../utils/cloudinary.js";
 import { sendResponse } from "../../utils/SendResponse.js";
 import { User } from "../../models/user/user.model.js";
+import { Member } from "../../models/newsletter/member.model.js";
 
 const createPost = async (req, res, next) => {
     try {
@@ -10,7 +11,7 @@ const createPost = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { text, viewPriority, author, referenceId, isVideo = false } = req?.body;
-        const files = req.files || [];
+        const files = req?.files || [];
 
         if (!viewPriority || !author)
             return next(new ErrorHandler("All fields are required", 400));
@@ -41,7 +42,6 @@ const createPost = async (req, res, next) => {
                     return next(new ErrorHandler(error.message, 500));
                 }
             }))
-
             media = uploadFilesOnCloudinaryPromise;
         }
 
@@ -120,10 +120,120 @@ const deletePost = async (req, res, next) => {
     }
 }
 
+const createArticle = async (req,res,next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const { title, description, type, viewPriority, referenceId } = req?.body;
+        const {path} = req?.file;
+
+        if (!title || !description || !type || !viewPriority || !referenceId)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        let image = "";
+
+        if (path) {
+            const { url } = await uploadOnCloudinary(path, next, {
+                transformation: [
+                    { width: 1024, height: 1024, crop: "limit" },
+                    { quality: "auto:low" },
+                    { fetch_format: "auto" }
+                ]
+            });
+            image = url;
+        }
+
+        if (path && !image)
+            return next(new ErrorHandler("Image not uploaded Properly!", 400));
+
+        const post = await Post.create({ title, description, type, viewPriority, referenceId, image, author: req.user.id });
+
+        if (!post)
+            return next(new ErrorHandler("Article not created Properly!", 400));
+
+        return sendResponse(res, 200, "Article created Successfully!", true, post, null);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
+const editArticle = async (req,res,next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const { title, description, type, viewPriority, referenceId } = req?.body;
+        const path = req?.file?.path;
+        const { id } = req?.params;
+
+        if (!title || !description || !type || !viewPriority || !referenceId || !id)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        let image = "";
+
+        if (path) {
+            const { url } = await uploadOnCloudinary(path, next, {
+                transformation: [
+                    { width: 1024, height: 1024, crop: "limit" },
+                    { quality: "auto:low" },
+                    { fetch_format: "auto" }
+                ]
+            });
+            image = url;
+        }
+
+        if (path && !image)
+            return next(new ErrorHandler("Image not uploaded Properly!", 400));
+
+        let data = {title, description, type, viewPriority, referenceId, author: req.user.id};
+
+        if(image)
+        {
+            data = {...data,image};
+        }
+        
+        const post = await Post.findByIdAndUpdate(id,data,{new:true});
+
+        if (!post)
+            return next(new ErrorHandler("Article not updated Properly!", 400));
+
+        return sendResponse(res, 200, "Article updated Successfully!", true, post, null);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
+const getArticleByNewsletterId = async (req, res, next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const {id} = req?.params;
+
+        if(!id)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        const members = await Member.find({referenceId:id});
+
+        const post = await Post.find({type:"article",$or:[{viewPriority:"anyone"},{author:{ $in: [...members,req.user.id] },viewPriority:"connection"}]});
+
+        if (!post)
+            return next(new ErrorHandler("Article not found!", 400));
+
+        return sendResponse(res, 200, "Article fetched Successfully!", true, post, null);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
 export {
     createPost,
     editPost,
     getAllPostDetails,
-    deletePost
+    deletePost,
+    createArticle,
+    editArticle,
+    getArticleByNewsletterId
 }
 

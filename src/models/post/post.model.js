@@ -3,6 +3,14 @@ const { models } = mongoose;
 
 const postSchema = Schema({
     text:String,
+    image: String,
+    title: String,
+    description: String,
+    type:{
+        type: String,
+        enum: ["post","article"],
+        default:"post"
+    },
     media: [
         String
     ],

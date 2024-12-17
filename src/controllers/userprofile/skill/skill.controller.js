@@ -67,7 +67,6 @@ const getAllSkills = async (req,res,next) => {
 }
 
 const editSkill = async (req,res,next) => {
-    // not tested
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
@@ -75,7 +74,7 @@ const editSkill = async (req,res,next) => {
         const {id} = req?.params;
         const {reference} = req?.body;
 
-        if (!id || !reference)
+        if (!id || !reference || reference.length === 0)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
         const skill = await Skill.findByIdAndUpdate(id, {reference}, {new: true});
@@ -83,7 +82,7 @@ const editSkill = async (req,res,next) => {
         if(!skill)
             return sendResponse(res, 400, "Skill not updated Properly!", false, null, null);
 
-        return sendResponse(res, 200, "Skill fetched successfully!", true, skill, null);
+        return sendResponse(res, 200, "Skill updated successfully!", true, skill, null);
     }
     catch(error)
     {
@@ -95,6 +94,18 @@ const endorseSkill = async (req,res,next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
+
+        const {id} = req?.params;
+
+        if (!id)
+            return sendResponse(res, 400, "Skill not found!", false, null, null);
+
+        const skill = await Skill.findByIdAndUpdate(id, {$push: {endorsedBy: req.user.id}}, {new: true});
+
+        if(!skill)
+            return sendResponse(res, 400, `${skill.name} is not endorsed by you.`, false, null, null);
+
+        return sendResponse(res, 200, `${skill.name} is endorsed by you.`, true, skill, null);
     }
     catch(error)
     {

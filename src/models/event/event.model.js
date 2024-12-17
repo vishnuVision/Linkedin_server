@@ -55,6 +55,12 @@ const eventSchema = Schema({
         type: String,
         required: true
     },
+    creator:{
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        ref: "Page",
+        required: true
+    },
     address: String,
 },{timestamps: true});
 

@@ -9,7 +9,7 @@ const createEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, isPresent, skills = ["DevOps", "Javascript"] } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, isPresent, skills = ["Java", "Javascript"] } = req?.body;
         const files = req.files || [];
 
         if (!school || !degree || !fieldOfStudy || !startMonth || !startYear || !endYear || !endMonth || !grade || !activities || !description)
@@ -45,33 +45,23 @@ const createEducation = async (req, res, next) => {
 
         let skillList = [];
 
-        console.log(skills);
-
         if(skills.length > 0)
         {
             const skillsPromise = await Promise.all(skills.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
-                console.log("find")
-                console.log(skillObj);
-                if (!skillObj)
+                if (skillObj===null)
                 {
-                    const skill = await Skill.create({ name: skill, owner: req.user.id, reference: [education._id] });
-                    console.log("created")
-                    console.log(skill);
-                    return skill;
+                    const skilldata = await Skill.create({ name: skill, owner: req.user.id, reference: [education._id] });
+                    return skilldata;
                 }
                 else
                 {
-                    const skill = await Skill.findByIdAndUpdate(skillObj._id, { reference: [...skillObj.reference, education._id] }, { new: true });
-                    console.log("updated")
-                    console.log(skill);
-                    return skill;
+                    const skilldata = await Skill.findByIdAndUpdate(skillObj._id, { reference: [...skillObj.reference, education._id] }, { new: true });
+                    return skilldata;
                 }
             }));
             skillList = skillsPromise;
         }
-
-        console.log(skillList)
 
         return sendResponse(res, 200, "Education created successfully!", true, {education,skills: skillList}, null);
     }
