@@ -9,6 +9,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { socketAuthenticator } from "./middlewares/Socketmiddleware.js";
 import router from './routes/index.js';
+import cron from "node-cron";
 
 const userSockets = new Map();
 
@@ -72,6 +73,10 @@ app.set("io",io);
 //             userSockets.delete(socket.user._id.toString());
 //         }
 //     });
+// });
+
+// cron.schedule("* * * * * *", async () => {    
+    // console.log("hii");
 // });
 
 app.get("/",(req,res)=>{
