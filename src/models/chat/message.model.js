@@ -14,10 +14,6 @@ const messageSchema = Schema({
         ref:"User",
         required:true
     },
-    isShow:{
-        type:Boolean,
-        default:false
-    },
     chat:{
         type:Schema.Types.ObjectId,
         ref:"Chat",

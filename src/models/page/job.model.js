@@ -6,6 +6,11 @@ const jobSchema = Schema({
         type: String,
         required: true
     },
+    owner:{
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
     company:{
         type: Schema.Types.ObjectId,
         ref: "Page",
@@ -29,11 +34,12 @@ const jobSchema = Schema({
         type: String,
     },
     skill:[String],
-    answers:[{
+    questions:[{
         question: String,
         answer: String,
         idealAnswer: String,
-    }]
+    }],
+    industry:String,
 },{timestamps: true});
 
 export const Job = models?.Job || mongoose.model("Job", jobSchema);

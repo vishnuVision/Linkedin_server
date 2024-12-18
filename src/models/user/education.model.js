@@ -3,8 +3,7 @@ const { models } = mongoose;
 
 const educationSchema = Schema({
     school:{
-        type:Schema.Types.ObjectId,
-        ref: "Page",
+        type: String,
         required: true
     },
     degree: String,

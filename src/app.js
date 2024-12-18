@@ -13,6 +13,21 @@ import cron from "node-cron";
 
 const userSockets = new Map();
 
+const monthMapping = {
+    "january": 0,
+    "february": 1,
+    "march": 2,
+    "april": 3,
+    "may": 4,
+    "june": 5,
+    "july": 6,
+    "august": 7,
+    "september": 8,
+    "october": 9,
+    "november": 10,
+    "december": 11,
+};
+
 configDotenv({
     path:"./.env"
 });
@@ -75,8 +90,47 @@ app.set("io",io);
 //     });
 // });
 
-// cron.schedule("* * * * * *", async () => {    
-    // console.log("hii");
+// cron.schedule("* * * * * *", (req, res, next) => {
+//     console.log("hii");
+    // const today = new Date();
+    // const month = today.getMonth() + 1;
+    // const day = today.getDate();
+    // console.log("hii")
+
+    // try {
+        // const usersWithBirthdayToday = await User.find({
+        //     $expr: {
+        //         $and: [
+        //             { $eq: [{ $month: "$birthday" }, month] },
+        //             { $eq: [{ $dayOfMonth: "$birthday" }, day] },
+        //         ],
+        //     },
+        // });
+
+        // if (usersWithBirthdayToday.length > 0) {
+        //     const userIds = usersWithBirthdayToday.map(user => user._id.toString());
+        //     // const catchup = await Promise.all(userIds.map(async(userId) => 
+        //     //     await Catchup.create({owner: userId,type: "birthday"})
+        //     // ));
+        // }
+
+        // const educations = await Education.find();
+
+        // const now = new Date();
+        // const oneYearEducations = educations.filter((education) => {
+        //     const { startMonth, startYear } = education;
+        //     const startMonthIndex = monthMapping[startMonth.toLowerCase()];
+        //     const startDate = new Date(startYear, startMonthIndex);
+        //     const oneYearMark = new Date(startDate);
+        //     oneYearMark.setFullYear(oneYearMark.getFullYear() + 1);
+        //     return now >= oneYearMark;
+        // });
+
+        // console.log(oneYearEducations); 
+    // } catch (error) {
+    //     console.log(error);
+    //     // return
+    // }
 // });
 
 app.get("/",(req,res)=>{

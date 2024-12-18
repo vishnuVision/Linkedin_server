@@ -5,12 +5,10 @@ const requestSchema = Schema({
     from:{
         type: Schema.Types.ObjectId,
         ref: "User",
-        ref: "Page",
     },
     to:{
         type: Schema.Types.ObjectId,
         ref: "User",
-        ref: "Page",
     },
     status: {
         type: String,

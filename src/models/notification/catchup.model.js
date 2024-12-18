@@ -9,12 +9,10 @@ const catchupSchema = Schema({
     },
     type: {
         type: String,
-        enum: ["birthday","education","job","work-anniversaries"],
+        enum: ["birthday","education","experience","work-anniversaries"],
     },
     referenceId:{
         type: Schema.Types.ObjectId,
-        ref: "Education",
-        ref: "Job",
         ref: "Experience",
     }
 },{timestamps: true});

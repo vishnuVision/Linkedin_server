@@ -3,8 +3,7 @@ const { models } = mongoose;
 
 const experienceSchema = Schema({
     company:{
-        type: Schema.Types.ObjectId,
-        ref: "Page",
+        type: String,
         required: true
     },
     title: String,

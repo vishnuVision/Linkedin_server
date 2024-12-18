@@ -67,6 +67,10 @@ const userSchema = new Schema({
         type: String,
         enum:["English","Hindi"],
         default:"English"
+    },
+    isJobAccountVerified:{
+        type: Boolean,
+        default: false
     }
 },{timestamps: true});
 
