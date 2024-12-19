@@ -6,16 +6,13 @@ const socketAuthenticator = async (err, socket, next) => {
         if (err)
             return next(new ErrorHandler(err, 400));
 
-        const token = await socket.request.cookies;
+        const token = await socket?.request?.headers?.cookie;
 
         if (!token)
             return next(new ErrorHandler("Token is required", 400));
 
-        if (token.userToken === undefined)
-            return next(new ErrorHandler("Token is required", 400));
+        const user = await jwt.verify(token, process.env.JWT_SECRET);
 
-
-        const user = await jwt.verify(token.userToken, process.env.JWT_SECRET);
         if (!user)
             return next(new ErrorHandler("Token is invalid", 400));
         socket.user = user;

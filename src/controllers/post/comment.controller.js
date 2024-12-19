@@ -4,6 +4,9 @@ import { sendResponse } from "../../utils/SendResponse.js";
 import { Comment } from "../../models/post/comment.model.js"
 import { uploadOnCloudinary } from "../../utils/cloudinary.js";
 import mongoose from "mongoose";
+import { User } from "../../models/user/user.model.js";
+import { COMMENT_POST } from "../../utils/events.js";
+import { emitEvent } from "../../utils/getMemberSocket.js";
 
 const addComment = async (req, res, next) => {
     try {
@@ -12,7 +15,7 @@ const addComment = async (req, res, next) => {
 
         const { text } = req?.body;
         const { postId } = req?.params;
-        const { path } = req?.file;
+        const path = req?.file?.path;
 
         if (!postId)
             return next(new ErrorHandler("All fields are required", 400));
@@ -20,10 +23,14 @@ const addComment = async (req, res, next) => {
         if (!text && !path)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const { url: media } = await uploadOnCloudinary(path);
+        let media;
+        if (path) {
+            const { url } = await uploadOnCloudinary(path);
+            media = url;
 
-        if (!media)
-            return next(new ErrorHandler("Media not uploaded Properly!", 400));
+            if (!media)
+                return next(new ErrorHandler("Media not uploaded Properly!", 400));
+        }
 
         const post = await Post.findById(postId);
 
@@ -35,8 +42,16 @@ const addComment = async (req, res, next) => {
         if (!createComment)
             return next(new ErrorHandler("Comment not created Properly!", 400));
 
+        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar");
+
+        if (!user)
+            return next(new ErrorHandler("User not found!", 400));
+
+        emitEvent(req, next, COMMENT_POST, { post, user }, post.author);
+
         return sendResponse(res, 200, "Comment added Successfully!", true, createComment, null);
     } catch (error) {
+        console.log(error)
         return next(new ErrorHandler(error.message, 500));
     }
 }
@@ -206,7 +221,7 @@ const getAllComment = async (req, res, next) => {
                         lastName: 1,
                         createdAt: 1,
                     },
-                    media:1,
+                    media: 1,
                     createdAt: 1,
                     text: 1,
                     subComments: 1,
@@ -234,7 +249,9 @@ const addSubComment = async (req, res, next) => {
 
         const { text, isSubComment = false } = req?.body;
         const { postId, commentId } = req?.params;
-        const { path } = req?.file;
+        const path = req?.file?.path;
+
+        console.log(path)
 
         if (!postId || !commentId)
             return next(new ErrorHandler("All fields are required", 400));
@@ -242,10 +259,16 @@ const addSubComment = async (req, res, next) => {
         if (!text && !path)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const { url: media } = await uploadOnCloudinary(path);
+        let media;
+        if (path) {
+            const { url } = await uploadOnCloudinary(path);
+            media = url;
 
-        if (!media)
-            return next(new ErrorHandler("Media not uploaded Properly!", 400));
+            if (!media)
+                return next(new ErrorHandler("Media not uploaded Properly!", 400));
+        }
+
+        console.log(media)
 
         const post = await Post.findById(postId);
 
@@ -266,7 +289,14 @@ const addSubComment = async (req, res, next) => {
         if (!comment)
             return next(new ErrorHandler("Comment not updated Properly!", 400));
 
-        return sendResponse(res, 200, "Comment added Successfully!", true, comment, null);
+        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar");
+
+        if (!user)
+            return next(new ErrorHandler("User not found!", 400));
+
+        emitEvent(req, next, COMMENT_POST, { post, user }, post.author);
+
+        return sendResponse(res, 200, "Comment added Successfully!", true, createsubComment, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }

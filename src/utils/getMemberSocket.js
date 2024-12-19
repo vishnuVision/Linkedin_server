@@ -2,11 +2,25 @@ import { userSockets } from "../app.js"
 import { ErrorHandler } from "./ErrorHandler.js";
 
 const getMemberSocket = (members) => {
-    return members.map(member => userSockets.get(member.toString()));
+    if(members.length > 0)
+    {
+        return members.map(member => userSockets.get(member.toString()));
+    }
+    else
+    {
+        return [];
+    }
 }
 
 const getOfflineMembers = (members) => {
-    return members.filter(member => !userSockets.get(member.toString()));
+    if(members.length > 0)
+    {
+        return members.filter(member => !userSockets.get(member.toString()));
+    }
+    else
+    {
+        return [];
+    }
 }
 
 
@@ -38,8 +52,14 @@ const emitEvent = (req , next , event , data , member) => {
     io.to(memberSockets).emit(event , data);
 }
 
+const broadcastEvent = (req , next , event , data) => {
+    const io = req.app.get("io");
+    io.emit(event , data);
+}
+
 export {
     getMemberSocket,
     getOfflineMembers,
-    emitEvent
+    emitEvent,
+    broadcastEvent
 }

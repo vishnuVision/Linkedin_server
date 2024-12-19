@@ -9,6 +9,7 @@ import newsLetterRouter from "./newsletter/newsletter.routes.js";
 import jobRouter from "./job/job.routes.js";
 import friendRequestRouter from "./friendRequest/sendFriendRequest.js";
 import chatRouter from "./chat/chat.routes.js";
+import catchupRouter from "./catchup/catchup.routes.js";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use("/newsletter",newsLetterRouter);
 router.use("/job",jobRouter);
 router.use("/friendRequest",friendRequestRouter);
 router.use("/chat",chatRouter);
+router.use("/catchup",catchupRouter);
 
 export default router;

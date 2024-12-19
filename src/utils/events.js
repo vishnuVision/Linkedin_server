@@ -1,0 +1,13 @@
+const LOAD_MORE = "LOAD_MORE";
+const LIKE_POST = "LIKE_POST";
+const COMMENT_POST = "COMMENT_POST";
+const LIKE_COMMENT = "LIKE_COMMENT";
+const NEW_CATCH_UP = "NEW_CATCH_UP";
+
+export {
+    LOAD_MORE,
+    LIKE_POST,
+    COMMENT_POST,
+    LIKE_COMMENT,
+    NEW_CATCH_UP
+}

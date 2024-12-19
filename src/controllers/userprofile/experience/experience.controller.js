@@ -3,6 +3,10 @@ import { Experience } from "../../../models/user/experience.model.js"
 import { sendResponse } from "../../../utils/SendResponse.js";
 import { uploadOnCloudinary } from "../../../utils/cloudinary.js";
 import { Skill } from "../../../models/user/skill.model.js";
+import { Catchup } from "../../../models/notification/catchup.model.js";
+import { emitEvent } from "../../../utils/getMemberSocket.js";
+import { NEW_CATCH_UP } from "../../../utils/events.js";
+import { User } from "../../../models/user/user.model.js";
 
 const createExperience = async (req, res, next) => {
     try {
@@ -59,6 +63,17 @@ const createExperience = async (req, res, next) => {
             }));
             skillList = skillsPromise;
         }
+
+        await Catchup.create({ owner: req.user.id, type: "job changes", referenceId: experience._id });
+
+        const user = await User.findById(req.user.id);
+
+        if(!user)
+            return next(new ErrorHandler("User not found", 400));
+
+        const { followers, following } = user;
+
+        emitEvent(req, next, NEW_CATCH_UP, null, [...followers, ...following])
 
         return sendResponse(res, 200, "Experience created successfully!", true,{ experience, skills: skillList } , null);
     }

@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { createArticle, createPost, deletePost, editArticle, editPost, getAllPostDetails, getArticleByNewsletterId } from "../../controllers/post/post.controller.js";
+import { createArticle, createPost, deletePost, editArticle, editPost, getAllPostDetails, getArticleByNewsletterId, listAllPostOfUser } from "../../controllers/post/post.controller.js";
 import { upload } from "../../middlewares/multer.js"
 
 const postRouter = Router();
 
 postRouter.get("/getAllPostDetails",getAllPostDetails);
+postRouter.get("/listAllPost/:id",listAllPostOfUser);
 postRouter.get("/getArticleByNewsletterId/:id",getArticleByNewsletterId);
 postRouter.post("/createPost",upload.array("media"),createPost);
 postRouter.put("/editPost/:postId",editPost);

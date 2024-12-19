@@ -1,19 +1,21 @@
 import { Post } from "../../models/post/post.model.js";
 import { ErrorHandler } from "../../utils/ErrorHandler.js";
-import { uploadOnCloudinary,uploadLargeVideo } from "../../utils/cloudinary.js";
+import { uploadOnCloudinary, uploadLargeVideo } from "../../utils/cloudinary.js";
 import { sendResponse } from "../../utils/SendResponse.js";
 import { User } from "../../models/user/user.model.js";
 import { Member } from "../../models/newsletter/member.model.js";
+import { broadcastEvent, emitEvent } from "../../utils/getMemberSocket.js";
+import { LOAD_MORE } from "../../utils/events.js";
 
 const createPost = async (req, res, next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { text, viewPriority, author, referenceId, isVideo = false } = req?.body;
+        const { text, viewPriority, referenceId, isVideo = false } = req?.body;
         const files = req?.files || [];
 
-        if (!viewPriority || !author)
+        if (!viewPriority)
             return next(new ErrorHandler("All fields are required", 400));
 
         if (!text && files.length === 0)
@@ -48,10 +50,18 @@ const createPost = async (req, res, next) => {
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const post = await Post.create({ text, viewPriority, author, referenceId, media });
+        const post = await Post.create({ text, viewPriority, author: req.user.id, referenceId, media });
 
         if (!post)
             return next(new ErrorHandler("Post not created Properly!", 400));
+
+        if (viewPriority === "connection") {
+            const { followers, following } = await User.findById(req.user.id);
+            emitEvent(req, next, LOAD_MORE, null, [...followers, ...following]);
+        }
+        else {
+            broadcastEvent(req, next, LOAD_MORE, null);
+        }
 
         return sendResponse(res, 200, "Post created Successfully!", true, post, null);
     } catch (error) {
@@ -70,7 +80,7 @@ const editPost = async (req, res, next) => {
         if (!viewPriority || !postId)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const post = await Post.updateOne({ _id: postId },{ text, viewPriority });
+        const post = await Post.updateOne({ _id: postId }, { text, viewPriority });
 
         if (!post)
             return next(new ErrorHandler("Post not updated Properly!", 400));
@@ -86,9 +96,9 @@ const getAllPostDetails = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const {followers,following} = await User.findById(req.user.id);
+        const { followers, following } = await User.findById(req.user.id);
 
-        const post = await Post.find({$or:[{viewPriority:"anyone"},{author:{ $in: [...followers, ...following,req.user.id] },viewPriority:"connection"}]});
+        const post = await Post.find({ $or: [{ viewPriority: "anyone" }, { author: { $in: [...followers, ...following, req.user.id] }, viewPriority: "connection" }] });
 
         if (!post)
             return next(new ErrorHandler("Post not updated Properly!", 400));
@@ -106,7 +116,7 @@ const deletePost = async (req, res, next) => {
 
         const { postId } = req?.params;
 
-        if(!postId)
+        if (!postId)
             return next(new ErrorHandler("All fields are required", 400));
 
         const post = await Post.deleteOne({ _id: postId });
@@ -120,13 +130,13 @@ const deletePost = async (req, res, next) => {
     }
 }
 
-const createArticle = async (req,res,next) => {
+const createArticle = async (req, res, next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
         const { title, description, type, viewPriority, referenceId } = req?.body;
-        const {path} = req?.file;
+        const { path } = req?.file;
 
         if (!title || !description || !type || !viewPriority || !referenceId)
             return next(new ErrorHandler("All fields are required", 400));
@@ -152,13 +162,21 @@ const createArticle = async (req,res,next) => {
         if (!post)
             return next(new ErrorHandler("Article not created Properly!", 400));
 
+        if (viewPriority === "connection") {
+            const { followers, following } = await User.findById(req.user.id);
+            emitEvent(req, next, LOAD_MORE, null, [...followers, ...following]);
+        }
+        else {
+            broadcastEvent(req, next, LOAD_MORE, null);
+        }
+
         return sendResponse(res, 200, "Article created Successfully!", true, post, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
 }
 
-const editArticle = async (req,res,next) => {
+const editArticle = async (req, res, next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
@@ -186,14 +204,13 @@ const editArticle = async (req,res,next) => {
         if (path && !image)
             return next(new ErrorHandler("Image not uploaded Properly!", 400));
 
-        let data = {title, description, type, viewPriority, referenceId, author: req.user.id};
+        let data = { title, description, type, viewPriority, referenceId, author: req.user.id };
 
-        if(image)
-        {
-            data = {...data,image};
+        if (image) {
+            data = { ...data, image };
         }
-        
-        const post = await Post.findByIdAndUpdate(id,data,{new:true});
+
+        const post = await Post.findByIdAndUpdate(id, data, { new: true });
 
         if (!post)
             return next(new ErrorHandler("Article not updated Properly!", 400));
@@ -209,14 +226,14 @@ const getArticleByNewsletterId = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const {id} = req?.params;
+        const { id } = req?.params;
 
-        if(!id)
+        if (!id)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const members = await Member.find({referenceId:id});
+        const members = await Member.find({ referenceId: id });
 
-        const post = await Post.find({type:"article",$or:[{viewPriority:"anyone"},{author:{ $in: [...members,req.user.id] },viewPriority:"connection"}]});
+        const post = await Post.find({ type: "article", $or: [{ viewPriority: "anyone" }, { author: { $in: [...members, req.user.id] }, viewPriority: "connection" }] });
 
         if (!post)
             return next(new ErrorHandler("Article not found!", 400));
@@ -227,6 +244,39 @@ const getArticleByNewsletterId = async (req, res, next) => {
     }
 }
 
+const listAllPostOfUser = async (req, res, next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const { id } = req?.params;
+        const { isAuthor = false } = req?.body;
+
+        if (!id)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        if (isAuthor) {
+            const post = await Post.find({ author: req.user.id, type: "post", referenceId: { $exists: false } });
+
+            if (!post)
+                return next(new ErrorHandler("Post not found!", 400));
+
+            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
+        }
+        else {
+            const post = await Post.find({ referenceId: id, type: "post" });
+
+            if (!post)
+                return next(new ErrorHandler("Post not found!", 400));
+
+            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
+        }
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
+
 export {
     createPost,
     editPost,
@@ -234,6 +284,7 @@ export {
     deletePost,
     createArticle,
     editArticle,
-    getArticleByNewsletterId
+    getArticleByNewsletterId,
+    listAllPostOfUser
 }
 

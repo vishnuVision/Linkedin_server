@@ -1,7 +1,11 @@
+import { Catchup } from "../../../models/notification/catchup.model.js";
 import { Education } from "../../../models/user/education.model.js";
 import { Skill } from "../../../models/user/skill.model.js";
+import { User } from "../../../models/user/user.model.js";
 import { uploadOnCloudinary } from "../../../utils/cloudinary.js";
 import { ErrorHandler } from "../../../utils/ErrorHandler.js";
+import { NEW_CATCH_UP } from "../../../utils/events.js";
+import { emitEvent } from "../../../utils/getMemberSocket.js";
 import { sendResponse } from "../../../utils/SendResponse.js";
 
 const createEducation = async (req, res, next) => {
@@ -62,6 +66,17 @@ const createEducation = async (req, res, next) => {
             }));
             skillList = skillsPromise;
         }
+
+        await Catchup.create({ owner: req.user.id, type: "education", referenceId: education._id });
+
+        const user = await User.findById(req.user.id);
+
+        if(!user)
+            return next(new ErrorHandler("User not found", 400));
+
+        const { followers, following } = user;
+
+        emitEvent(req, next, NEW_CATCH_UP, null, [...followers, ...following])
 
         return sendResponse(res, 200, "Education created successfully!", true, {education,skills: skillList}, null);
     }

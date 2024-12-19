@@ -55,6 +55,11 @@ const pageSchema = Schema({
         type: String,
         enum:["English","Hindi"],
         default:"English"
+    },
+    owner:{
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     }
 },{timestamps: true});
 

@@ -22,10 +22,10 @@ const postSchema = Schema({
     author:{
         type:Types.ObjectId,
         ref:"User",
-        ref:"Page"
     },
     referenceId:{
         type:Types.ObjectId,
+        ref:"Page",
         ref:"Group",
         ref:"Event",
         ref:"Newsletter",

@@ -10,7 +10,7 @@ const createPage = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { type, name, website, industry, organizationSize, organizationType, tagline } = req.body;
-        const { path } = req?.file;
+        const path = req?.file?.path;
 
         if (!type || !name || !website || !industry || !organizationSize || !organizationType || !tagline || !path)
             return sendResponse(res, 400, "All fields are required", false, null, null);
@@ -20,7 +20,7 @@ const createPage = async (req, res, next) => {
         if (!avatar)
             return sendResponse(res, 400, "Media not uploaded Properly!", false, null, null);
 
-        const createPage = await Page.create({ type, name, website, industry, organizationSize, organizationType, tagline, logo: avatar });
+        const createPage = await Page.create({ type, name, website, industry, organizationSize, organizationType, tagline, logo: avatar, owner:req.user.id });
 
         if (!createPage)
             return sendResponse(res, 400, "page not created Properly!", false, null, null);
@@ -172,6 +172,22 @@ const editLogo = async (req, res, next) => {
     }
 }
 
+const listAllPageOfUser = async (req, res, next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const pages = await Page.find({ owner: req.user.id });
+
+        if (!pages)
+            return sendResponse(res, 400, "Page not found", false, null, null);
+
+        return sendResponse(res, 200, "Page fetched successfully!", true, pages, null);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
 export {
     createPage,
     getPageDetails,
@@ -179,7 +195,8 @@ export {
     deactivatePage,
     getAllPost,
     editCoverImage,
-    editLogo
+    editLogo,
+    listAllPageOfUser
 }
 
 

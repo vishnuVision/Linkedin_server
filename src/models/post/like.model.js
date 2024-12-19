@@ -7,6 +7,11 @@ const likeSchema = Schema({
         ref:"User",
         // ref:"Page"
     },
+    type: {
+        type: String,
+        enum: ["post","comment"],
+        default:"post"
+    },
     post:{
         type:Types.ObjectId,
         ref:"Post",
