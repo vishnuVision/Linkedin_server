@@ -10,6 +10,7 @@ import jobRouter from "./job/job.routes.js";
 import friendRequestRouter from "./friendRequest/sendFriendRequest.js";
 import chatRouter from "./chat/chat.routes.js";
 import catchupRouter from "./catchup/catchup.routes.js";
+import filterRouter from "./filter/filter.routes.js";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/job",jobRouter);
 router.use("/friendRequest",friendRequestRouter);
 router.use("/chat",chatRouter);
 router.use("/catchup",catchupRouter);
+router.use("/filter",filterRouter)
 
 export default router;

@@ -23,6 +23,11 @@ const postSchema = Schema({
         type:Types.ObjectId,
         ref:"User",
     },
+    authorType:{
+        type: String,
+        enum: ["user","page","group","event","newsletter"],
+        default:"user"
+    },
     referenceId:{
         type:Types.ObjectId,
         ref:"Page",

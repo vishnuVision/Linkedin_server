@@ -1,112 +1,102 @@
-import { Post } from "../../models/post/post.model.js";
-import { ErrorHandler } from "../../utils/ErrorHandler.js";
-import { uploadOnCloudinary, uploadLargeVideo } from "../../utils/cloudinary.js";
-import { sendResponse } from "../../utils/SendResponse.js";
-import { User } from "../../models/user/user.model.js";
-import { Member } from "../../models/newsletter/member.model.js";
-import { broadcastEvent, emitEvent } from "../../utils/getMemberSocket.js";
-import { LOAD_MORE } from "../../utils/events.js";
 import mongoose from "mongoose";
+import { Event } from "../../models/event/event.model.js";
+import { Group } from "../../models/group/group.model.js";
+import { Newsletter } from "../../models/newsletter/newsletter.model.js";
+import { Job } from "../../models/page/job.model.js";
+import { Page } from "../../models/page/page.model.js";
+import { Post } from "../../models/post/post.model.js";
+import { User } from "../../models/user/user.model.js";
+import { ErrorHandler } from "../../utils/ErrorHandler.js";
+import { sendResponse } from "../../utils/SendResponse.js";
 
-const createPost = async (req, res, next) => {
+const getSearchQueryFilter = async (req, res, next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { text, viewPriority, referenceId, isVideo = false, authorType="user" } = req?.body;
-        const files = req?.files || [];
+        const { text } = req?.params;
 
-        if (!viewPriority || !authorType)
+        if (!text)
             return next(new ErrorHandler("All fields are required", 400));
 
-        if (!text && files.length === 0)
-            return next(new ErrorHandler("All fields are required", 400));
+        const user = await User.find({ $or: [{ firstName: { $regex: text, $options: "i" } }, { lastName: { $regex: text, $options: "i" } }, { username: { $regex: text, $options: "i" } }] });
 
-        let media = [];
-        if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
-                try {
-                    if (isVideo) {
-                        const { url } = await uploadLargeVideo(file.path);
-                        console.log(url);
-                        return url;
-                    }
-                    else {
-                        const { url } = await uploadOnCloudinary(file.path, next, {
-                            transformation: [
-                                { width: 1024, height: 1024, crop: "limit" },
-                                { quality: "auto:low" },
-                                { fetch_format: "auto" }
-                            ]
-                        });
-                        return url;
-                    }
-                } catch (error) {
-                    return next(new ErrorHandler(error.message, 500));
-                }
-            }))
-            media = uploadFilesOnCloudinaryPromise;
-        }
+        const company = await Page.find({
+            name: { $regex: text, $options: "i" },
+        });
 
-        if (files.length > 0 && media.length === 0)
-            return next(new ErrorHandler("All fields are required", 400));
+        if (!user && !company)
+            return next(new ErrorHandler("No data found!", 400));
 
-        const post = await Post.create({ text, viewPriority, author: req.user.id, referenceId, media, authorType });
-
-        if (!post)
-            return next(new ErrorHandler("Post not created Properly!", 400));
-
-        if (viewPriority === "connection") {
-            const { followers, following } = await User.findById(req.user.id);
-            emitEvent(req, next, LOAD_MORE, null, [...followers, ...following]);
-        }
-        else {
-            broadcastEvent(req, next, LOAD_MORE, null);
-        }
-
-        return sendResponse(res, 200, "Post created Successfully!", true, post, null);
+        return sendResponse(res, 200, "data fetched successfully!", true, [...user, ...company], null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
 }
 
-const editPost = async (req, res, next) => {
+const getAllFillterData = async (req, res, next) => {
     try {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { text, viewPriority } = req?.body;
-        const { postId } = req?.params;
+        const { text } = req?.params;
 
-        if (!viewPriority || !postId)
+        if (!text)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const post = await Post.updateOne({ _id: postId }, { text, viewPriority });
+        const user = await User.find({ $or: [{ firstName: { $regex: text, $options: "i" } }, { lastName: { $regex: text, $options: "i" } }, { username: { $regex: text, $options: "i" } }] });
 
-        if (!post)
-            return next(new ErrorHandler("Post not updated Properly!", 400));
-
-        return sendResponse(res, 200, "Post updated Successfully!", true, post, null);
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
-const getAllPostDetails = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
+        const company = await Page.find({
+            name: { $regex: text, $options: "i" },
+        });
 
         const { followers, following } = await User.findById(req.user.id);
 
-        // const post = await Post.find({ $or: [{ viewPriority: "anyone" }, { author: { $in: [...followers, ...following, req.user.id] }, viewPriority: "connection" }] }, { sort: { createdAt: -1 } });
+        // const post = await Post.find({
+        //     $and: [
+        //         {
+        //             $or: [
+        //                 { viewPriority: "anyone" },
+        //                 {
+        //                     $and: [
+        //                         { author: { $in: [...followers, ...following, req.user.id] } },
+        //                         { viewPriority: "connection" }
+        //                     ]
+        //                 }
+        //             ]
+        //         },
+        //         {
+        //             $or: [
+        //                 { text: { $regex: text, $options: "i" } },
+        //                 { title: { $regex: text, $options: "i" } },
+        //                 { description: { $regex: text, $options: "i" } }
+        //             ]
+        //         }
+        //     ]
+        // });
 
         const post = await Post.aggregate([
             {
                 $match: {
-                    $or: [
-                        { viewPriority: "anyone" },
-                        { author: { $in: [...followers, ...following, req.user.id] }, viewPriority: "connection" }
+                    $and: [
+                        {
+                            $or: [
+                                { viewPriority: "anyone" },
+                                {
+                                    $and: [
+                                        { author: { $in: [...followers, ...following, req.user.id] } },
+                                        { viewPriority: "connection" }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            $or: [
+                                { text: { $regex: text, $options: "i" } },
+                                { title: { $regex: text, $options: "i" } },
+                                { description: { $regex: text, $options: "i" } }
+                            ]
+                        }
                     ]
                 }
             },
@@ -293,13 +283,20 @@ const getAllPostDetails = async (req, res, next) => {
                     foreignField: "_id",
                     pipeline:[
                         {
-                            $project: {
-                                firstName: 1,
-                                lastName: 1,
-                                username: 1,
-                                avatar: 1,
-                                _id: 1
+                            $addFields:{
+                                name: {
+                                    $concat: ["$firstName", " ", "$lastName"]
+                                },
+                                description:"$bio"
                             }
+                        },
+                        {
+                            $project: {
+                                avatar: 1,
+                                _id: 1,
+                                name:1,
+                                description:1
+                            },
                         }
                     ],
                     as: "userDetails"
@@ -312,10 +309,16 @@ const getAllPostDetails = async (req, res, next) => {
                     foreignField: "_id",
                     pipeline:[
                         {
+                            $addFields: {
+                                description:"$tagline"
+                            }
+                        },
+                        {
                             $project: {
                                 name: 1,
-                                logo: 1,
-                                _id: 1
+                                avatar: "$logo",
+                                _id: 1,
+                                description:1
                             }
                         }
                     ],
@@ -332,7 +335,8 @@ const getAllPostDetails = async (req, res, next) => {
                             $project: {
                                 name: 1,
                                 avatar: 1,
-                                _id: 1
+                                _id: 1,
+                                description:1
                             }
                         }
                     ],
@@ -348,8 +352,9 @@ const getAllPostDetails = async (req, res, next) => {
                         {
                             $project: {
                                 name: 1,
-                                backgroundImage: 1,
-                                _id: 1
+                                avatar: "$backgroundImage",
+                                _id: 1,
+                                description:1
                             }
                         }
                     ],
@@ -366,7 +371,8 @@ const getAllPostDetails = async (req, res, next) => {
                             $project: {
                                 title: 1,
                                 avatar: 1,
-                                _id: 1
+                                _id: 1,
+                                description:1
                             }
                         }
                     ],
@@ -416,191 +422,149 @@ const getAllPostDetails = async (req, res, next) => {
             }
         ]);
 
-        if (!post)
-            return next(new ErrorHandler("Post not updated Properly!", 400));
+        const groups = await Group.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { name: { $regex: text, $options: "i" } },
+                        { description: { $regex: text, $options: "i" } },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "members",
+                    localField: "_id",
+                    foreignField: "referenceId",
+                    as: "members",
+                },
+            },
+            {
+                $addFields: {
+                    memberCount: { $size: "$members" },
+                },
+            },
+            {
+                $project: {
+                    members: 0,
+                },
+            }
+        ]);
 
-        return sendResponse(res, 200, "Post updated Successfully!", true, post, null);
+        const events = await Event.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { name: { $regex: text, $options: "i" } },
+                        { description: { $regex: text, $options: "i" } },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "members",
+                    localField: "_id",
+                    foreignField: "referenceId",
+                    as: "members",
+                },
+            },
+            {
+                $addFields: {
+                    memberCount: { $size: "$members" },
+                },
+            },
+            {
+                $project: {
+                    members: 0,
+                },
+            }
+        ]);
+
+        const newsletters = await Newsletter.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { name: { $regex: text, $options: "i" } },
+                        { description: { $regex: text, $options: "i" } },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "members",
+                    localField: "_id",
+                    foreignField: "referenceId",
+                    as: "members",
+                },
+            },
+            {
+                $addFields: {
+                    memberCount: { $size: "$members" },
+                },
+            },
+            {
+                $project: {
+                    members: 0,
+                },
+            }
+        ]);
+
+        const jobs = await Job.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { title: { $regex: text, $options: "i" } },
+                        { description: { $regex: text, $options: "i" } },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "applicants",
+                    localField: "_id",
+                    foreignField: "job",
+                    as: "applicants",
+                },
+            },
+            {
+                $lookup: {
+                    from: "pages",
+                    localField: "company",
+                    foreignField: "_id",
+                    pipeline: [
+                        {
+                            $project: {
+                                name: 1,
+                                _id: 1,
+                                logo: 1
+                            }
+                        }
+                    ],
+                    as: "company",
+                },
+            },
+            {
+                $addFields: {
+                    applicantsCount: { $size: "$applicants" },
+                },
+            },
+            {
+                $project: {
+                    applicants: 0,
+                },
+            }
+        ]);
+
+        if (!user && !company && !post && !groups && !events && !newsletters && !jobs)
+            return next(new ErrorHandler("No data found!", 400));
+
+        return sendResponse(res, 200, "user signin successfully!", true, { peoples: [...user], pages: [...company], posts: [...post], groups: [...groups], events: [...events], newsletters: [...newsletters], jobs: [...jobs] }, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
 }
-
-const deletePost = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
-
-        const { postId } = req?.params;
-
-        if (!postId)
-            return next(new ErrorHandler("All fields are required", 400));
-
-        const post = await Post.deleteOne({ _id: postId });
-
-        if (!post)
-            return next(new ErrorHandler("Post not deleted Properly!", 400));
-
-        return sendResponse(res, 200, "Post deleted Successfully!", true, post, null);
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
-const createArticle = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
-
-        const { title, description, type, viewPriority, referenceId } = req?.body;
-        const { path } = req?.file;
-
-        if (!title || !description || !type || !viewPriority || !referenceId)
-            return next(new ErrorHandler("All fields are required", 400));
-
-        let image = "";
-
-        if (path) {
-            const { url } = await uploadOnCloudinary(path, next, {
-                transformation: [
-                    { width: 1024, height: 1024, crop: "limit" },
-                    { quality: "auto:low" },
-                    { fetch_format: "auto" }
-                ]
-            });
-            image = url;
-        }
-
-        if (path && !image)
-            return next(new ErrorHandler("Image not uploaded Properly!", 400));
-
-        const post = await Post.create({ title, description, type, viewPriority, referenceId, image, author: req.user.id });
-
-        if (!post)
-            return next(new ErrorHandler("Article not created Properly!", 400));
-
-        if (viewPriority === "connection") {
-            const { followers, following } = await User.findById(req.user.id);
-            emitEvent(req, next, LOAD_MORE, null, [...followers, ...following]);
-        }
-        else {
-            broadcastEvent(req, next, LOAD_MORE, null);
-        }
-
-        return sendResponse(res, 200, "Article created Successfully!", true, post, null);
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
-const editArticle = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
-
-        const { title, description, type, viewPriority, referenceId } = req?.body;
-        const path = req?.file?.path;
-        const { id } = req?.params;
-
-        if (!title || !description || !type || !viewPriority || !referenceId || !id)
-            return next(new ErrorHandler("All fields are required", 400));
-
-        let image = "";
-
-        if (path) {
-            const { url } = await uploadOnCloudinary(path, next, {
-                transformation: [
-                    { width: 1024, height: 1024, crop: "limit" },
-                    { quality: "auto:low" },
-                    { fetch_format: "auto" }
-                ]
-            });
-            image = url;
-        }
-
-        if (path && !image)
-            return next(new ErrorHandler("Image not uploaded Properly!", 400));
-
-        let data = { title, description, type, viewPriority, referenceId, author: req.user.id };
-
-        if (image) {
-            data = { ...data, image };
-        }
-
-        const post = await Post.findByIdAndUpdate(id, data, { new: true });
-
-        if (!post)
-            return next(new ErrorHandler("Article not updated Properly!", 400));
-
-        return sendResponse(res, 200, "Article updated Successfully!", true, post, null);
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
-const getArticleByNewsletterId = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
-
-        const { id } = req?.params;
-
-        if (!id)
-            return next(new ErrorHandler("All fields are required", 400));
-
-        const members = await Member.find({ referenceId: id });
-
-        const post = await Post.find({ type: "article", $or: [{ viewPriority: "anyone" }, { author: { $in: [...members, req.user.id] }, viewPriority: "connection" }] });
-
-        if (!post)
-            return next(new ErrorHandler("Article not found!", 400));
-
-        return sendResponse(res, 200, "Article fetched Successfully!", true, post, null);
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
-const listAllPostOfUser = async (req, res, next) => {
-    try {
-        if (!req.user)
-            return next(new ErrorHandler("Please login", 400));
-
-        const { id } = req?.params;
-        const { isAuthor = false } = req?.body;
-
-        if (!id)
-            return next(new ErrorHandler("All fields are required", 400));
-
-        if (isAuthor) {
-            const post = await Post.find({ author: req.user.id, type: "post", referenceId: { $exists: false } });
-
-            if (!post)
-                return next(new ErrorHandler("Post not found!", 400));
-
-            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
-        }
-        else {
-            const post = await Post.find({ referenceId: id, type: "post" });
-
-            if (!post)
-                return next(new ErrorHandler("Post not found!", 400));
-
-            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
-        }
-    } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
-    }
-}
-
 
 export {
-    createPost,
-    editPost,
-    getAllPostDetails,
-    deletePost,
-    createArticle,
-    editArticle,
-    getArticleByNewsletterId,
-    listAllPostOfUser
+    getSearchQueryFilter,
+    getAllFillterData
 }
-
