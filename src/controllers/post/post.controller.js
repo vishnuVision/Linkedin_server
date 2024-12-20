@@ -13,7 +13,7 @@ const createPost = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { text, viewPriority, referenceId, isVideo = false, authorType="user" } = req?.body;
+        const { text, viewPriority, referenceId, isVideo = false, authorType = "user" } = req?.body;
         const files = req?.files || [];
 
         if (!viewPriority || !authorType)
@@ -291,15 +291,22 @@ const getAllPostDetails = async (req, res, next) => {
                     from: "users",
                     localField: "author",
                     foreignField: "_id",
-                    pipeline:[
+                    pipeline: [
+                        {
+                            $addFields: {
+                                name: {
+                                    $concat: ["$firstName", " ", "$lastName"]
+                                },
+                                description: "$bio"
+                            }
+                        },
                         {
                             $project: {
-                                firstName: 1,
-                                lastName: 1,
-                                username: 1,
                                 avatar: 1,
-                                _id: 1
-                            }
+                                _id: 1,
+                                name: 1,
+                                description: 1
+                            },
                         }
                     ],
                     as: "userDetails"
@@ -310,12 +317,18 @@ const getAllPostDetails = async (req, res, next) => {
                     from: "pages",
                     localField: "referenceId",
                     foreignField: "_id",
-                    pipeline:[
+                    pipeline: [
+                        {
+                            $addFields: {
+                                description: "$tagline"
+                            }
+                        },
                         {
                             $project: {
                                 name: 1,
-                                logo: 1,
-                                _id: 1
+                                avatar: "$logo",
+                                _id: 1,
+                                description: 1
                             }
                         }
                     ],
@@ -327,12 +340,13 @@ const getAllPostDetails = async (req, res, next) => {
                     from: "groups",
                     localField: "referenceId",
                     foreignField: "_id",
-                    pipeline:[
+                    pipeline: [
                         {
                             $project: {
                                 name: 1,
                                 avatar: 1,
-                                _id: 1
+                                _id: 1,
+                                description: 1
                             }
                         }
                     ],
@@ -344,12 +358,13 @@ const getAllPostDetails = async (req, res, next) => {
                     from: "events",
                     localField: "referenceId",
                     foreignField: "_id",
-                    pipeline:[
+                    pipeline: [
                         {
                             $project: {
                                 name: 1,
-                                backgroundImage: 1,
-                                _id: 1
+                                avatar: "$backgroundImage",
+                                _id: 1,
+                                description: 1
                             }
                         }
                     ],
@@ -361,12 +376,13 @@ const getAllPostDetails = async (req, res, next) => {
                     from: "newsletters",
                     localField: "referenceId",
                     foreignField: "_id",
-                    pipeline:[
+                    pipeline: [
                         {
                             $project: {
                                 title: 1,
                                 avatar: 1,
-                                _id: 1
+                                _id: 1,
+                                description: 1
                             }
                         }
                     ],

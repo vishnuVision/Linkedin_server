@@ -52,29 +52,6 @@ const getAllFillterData = async (req, res, next) => {
 
         const { followers, following } = await User.findById(req.user.id);
 
-        // const post = await Post.find({
-        //     $and: [
-        //         {
-        //             $or: [
-        //                 { viewPriority: "anyone" },
-        //                 {
-        //                     $and: [
-        //                         { author: { $in: [...followers, ...following, req.user.id] } },
-        //                         { viewPriority: "connection" }
-        //                     ]
-        //                 }
-        //             ]
-        //         },
-        //         {
-        //             $or: [
-        //                 { text: { $regex: text, $options: "i" } },
-        //                 { title: { $regex: text, $options: "i" } },
-        //                 { description: { $regex: text, $options: "i" } }
-        //             ]
-        //         }
-        //     ]
-        // });
-
         const post = await Post.aggregate([
             {
                 $match: {
