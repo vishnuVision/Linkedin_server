@@ -1,4 +1,3 @@
-import { populate } from "dotenv";
 import { Catchup } from "../../models/notification/catchup.model.js";
 import { User } from "../../models/user/user.model.js";
 import { ErrorHandler } from "../../utils/ErrorHandler.js";

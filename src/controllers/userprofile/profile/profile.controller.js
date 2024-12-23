@@ -54,7 +54,7 @@ const editBackgroundImage = async (req,res,next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const {path} = req?.file
+        const path = req?.file?.path;
 
         if (!path)
             return sendResponse(res, 400, "All fields are required", false, null, null);
@@ -82,7 +82,7 @@ const editAvatarImage = async (req,res,next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const {path} = req?.file
+        const path = req?.file?.path;
 
         if (!path)
             return sendResponse(res, 400, "All fields are required", false, null, null);

@@ -123,7 +123,7 @@ const editCoverImage = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { path } = req?.file;
+        const path = req?.file?.path;
         const { id } = req?.params;
 
         if (!path || !id)
@@ -150,7 +150,7 @@ const editLogo = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { path } = req?.file;
+        const path = req?.file?.path;
         const { id } = req?.params;
 
         if (!path || !id)

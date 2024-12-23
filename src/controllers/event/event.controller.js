@@ -11,7 +11,7 @@ const createEvent = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { name, type, organizer, description, timezone, startDate, startTime, endDate, endTime, speakers, externalLink, address } = req?.body;
-        const { path: backgroundImage } = req?.file;
+        const backgroundImage = req?.file?.path;
         let backgroundImageUrl = null;
 
         if (!name || !type || !organizer || !description || !timezone || !startDate || !startTime || !endDate || !endTime || !speakers || !externalLink)
@@ -50,7 +50,7 @@ const editEvent = async (req, res, next) => {
 
         const { name, type, organizer, description, timezone, startDate, startTime, endDate, endTime, speakers, externalLink, address } = req?.body;
         const { id } = req?.params;
-        const { path: backgroundImage } = req?.file;
+        const backgroundImage = req?.file?.path;
         let backgroundImageUrl = null;
 
         if (!name || !type || !organizer || !description || !timezone || !startDate || !startTime || !endDate || !endTime || !speakers || !externalLink || !id)

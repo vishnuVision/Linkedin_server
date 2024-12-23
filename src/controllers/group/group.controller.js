@@ -11,7 +11,8 @@ const createGroup = async (req,res,next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const {name, description, industries, location, rules, type} = req?.body;
-        const {avatar,backgroundImage} = req?.files || [];
+        const avatar = req?.file?.avatar;
+        const backgroundImage = req?.file?.backgroundImage;
         let avatarUrl,backgroundImageUrl = null;
 
         if(!name || !description || !industries || !location || !rules || !type)
@@ -62,7 +63,8 @@ const editGroup = async (req,res,next) => {
 
         const {name, description, industries, location, rules, type} = req?.body;
         const { id } = req?.params;
-        const {avatar,backgroundImage} = req?.files || [];
+        const avatar = req?.file?.avatar;
+        const backgroundImage = req?.file?.backgroundImage;
         let avatarUrl,backgroundImageUrl = null;
 
         if(!name || !description || !industries || !location || !rules || !type || !id)

@@ -99,8 +99,6 @@ const getAllPostDetails = async (req, res, next) => {
 
         const { followers, following } = await User.findById(req.user.id);
 
-        // const post = await Post.find({ $or: [{ viewPriority: "anyone" }, { author: { $in: [...followers, ...following, req.user.id] }, viewPriority: "connection" }] }, { sort: { createdAt: -1 } });
-
         const post = await Post.aggregate([
             {
                 $match: {
@@ -435,7 +433,7 @@ const getAllPostDetails = async (req, res, next) => {
         if (!post)
             return next(new ErrorHandler("Post not updated Properly!", 400));
 
-        return sendResponse(res, 200, "Post updated Successfully!", true, post, null);
+        return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -468,7 +466,7 @@ const createArticle = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { title, description, type, viewPriority, referenceId } = req?.body;
-        const { path } = req?.file;
+        const path = req?.file?.path;
 
         if (!title || !description || !type || !viewPriority || !referenceId)
             return next(new ErrorHandler("All fields are required", 400));

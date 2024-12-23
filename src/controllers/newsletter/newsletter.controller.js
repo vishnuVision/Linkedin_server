@@ -11,7 +11,7 @@ const createNewsletter = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { title, description, publishRoutine } = req?.body;
-        const { path: avatar } = req?.file;
+        const avatar = req?.file?.avatar;
         let avatarUrl = null;
 
         if (!title || !description || !publishRoutine || !avatar)
@@ -50,7 +50,7 @@ const editNewsletter = async (req, res, next) => {
 
         const { title, description, publishRoutine } = req?.body;
         const { id } = req?.params;
-        const { path: avatar } = req?.file;
+        const avatar = req?.file?.avatar;
         let avatarUrl = null;
 
         if (!title || !description || !publishRoutine || !avatar || !id)

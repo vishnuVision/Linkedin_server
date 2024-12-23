@@ -30,14 +30,14 @@ const login = async (req, res, next) => {
 
 const register = async (req, res, next) => {
     try {
-        const { email, password} = req.body;
+        const { email, password } = req.body;
 
         if (!email)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
-        const user = await User.findOne({email});
+        const user = await User.findOne({ email });
 
-        if(user)
+        if (user)
             return sendResponse(res, 400, "User already exists", false, null, null);
 
         const userData = await User.create({ email });
@@ -56,12 +56,12 @@ const register = async (req, res, next) => {
     }
 }
 
-const addReuiredDetails = async (req,res,next) => {
+const addReuiredDetails = async (req, res, next) => {
     try {
-        if(!req.user)
+        if (!req.user)
             return sendResponse(res, 400, "Please login", false, null, null);
 
-        const { birthday,firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
+        const { birthday, firstName, lastName, location, isStudent, mostRecentJob, mostRecentCompany, school, startYear, endYear, avatar } = req.body;
 
         if (!firstName || !lastName || !location || !avatar || !birthday)
             return sendResponse(res, 400, "All fields are required", false, null, null);
@@ -74,19 +74,19 @@ const addReuiredDetails = async (req,res,next) => {
 
         let userData;
         if (isStudent) {
-            const educations = await Education.create({ school, startYear, endYear,alumini:req.user.id });
+            const educations = await Education.create({ school, startYear, endYear, alumini: req.user.id });
 
             if (!educations)
                 return sendResponse(res, 400, "education not created Properly!", false, null, null);
 
-            userData = await User.findByIdAndUpdate(req.user.id,{ firstName, lastName, location, avatar, educations, birthday },{new:true});
+            userData = await User.findByIdAndUpdate(req.user.id, { firstName, lastName, location, avatar, educations, birthday }, { new: true });
         }
         else {
-            const experiences = await Experience.create({ company: mostRecentCompany, title: mostRecentJob,employee:req.user.id });
+            const experiences = await Experience.create({ company: mostRecentCompany, title: mostRecentJob, employee: req.user.id });
             if (!experiences)
                 return sendResponse(res, 400, "experience not created Properly!", false, null, null);
 
-            userData = await User.findByIdAndUpdate(req.user.id,{ firstName, lastName, location, avatar, experiences, birthday },{new:true});
+            userData = await User.findByIdAndUpdate(req.user.id, { firstName, lastName, location, avatar, experiences, birthday }, { new: true });
         }
 
         if (!userData)
@@ -100,10 +100,16 @@ const addReuiredDetails = async (req,res,next) => {
 
 const getUserDetails = async (req, res, next) => {
     try {
-        if(!req.user)
+        if (!req.user)
             return sendResponse(res, 400, "please login!", false, null, null);
 
-        const userData = await User.findById(req.user.id).select("-password -__v");
+        const userData = await User.findById(req.user.id).select("-password -__v").populate({
+            path: "educations",
+            populate: { path: "school" },
+        }).populate({
+            path: "experiences",
+            populate: { path: "company" },
+        });
 
         if (!userData)
             return sendResponse(res, 400, "user not signup Properly!", false, null, null);
@@ -116,27 +122,27 @@ const getUserDetails = async (req, res, next) => {
 
 const logout = async (req, res, next) => {
     try {
-        if(!req.user)
+        if (!req.user)
             return sendResponse(res, 400, "please login!", false, null, null);
 
         return res
-        .status(200)
-        .clearCookie("userToken")
-        .json({ success: true, message: "user logout successfully!" });
+            .status(200)
+            .clearCookie("userToken")
+            .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
 }
 
-const deleteUser = async (req,res,next) => {
+const deleteUser = async (req, res, next) => {
     try {
-        if(!req.user)
+        if (!req.user)
             return sendResponse(res, 400, "please login!", false, null, null);
 
         return res
-        .status(200)
-        .clearCookie("userToken")
-        .json({ success: true, message: "user logout successfully!" });
+            .status(200)
+            .clearCookie("userToken")
+            .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }

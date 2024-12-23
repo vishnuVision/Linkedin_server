@@ -230,9 +230,6 @@ const getAllComment = async (req, res, next) => {
             },
         ]);
 
-        console.log(comments);
-
-
         if (!comments)
             return next(new ErrorHandler("Comments not found!", 400));
 
