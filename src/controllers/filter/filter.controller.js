@@ -44,7 +44,7 @@ const getAllFillterData = async (req, res, next) => {
         if (!text)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const user = await User.find({ $or: [{ firstName: { $regex: text, $options: "i" } }, { lastName: { $regex: text, $options: "i" } }, { username: { $regex: text, $options: "i" } }] });
+        const user = await User.find({ $or: [{ firstName: { $regex: text, $options: "i" } }, { lastName: { $regex: text, $options: "i" } }, { username: { $regex: text, $options: "i" } }] }).populate({path:"educations",populate:{path:"school",select:"name"},select:"school"}).populate({path:"experiences",populate:{path:"company",select:"name"},select:"company"});
 
         const company = await Page.find({
             name: { $regex: text, $options: "i" },
