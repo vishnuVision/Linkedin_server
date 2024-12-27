@@ -14,7 +14,7 @@ const createPost = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { text, viewPriority, referenceId, isVideo = false, authorType = "user" } = req?.body;
-        const files = req?.files || [];
+        const files = req?.files;
 
         if (!viewPriority || !authorType)
             return next(new ErrorHandler("All fields are required", 400));
@@ -27,8 +27,7 @@ const createPost = async (req, res, next) => {
             const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
                 try {
                     if (isVideo) {
-                        const { url } = await uploadLargeVideo(file.path);
-                        console.log(url);
+                        const { url } = await uploadLargeVideo(file?.path);
                         return url;
                     }
                     else {
@@ -137,8 +136,9 @@ const getAllPostDetails = async (req, res, next) => {
                                 $expr: {
                                     $and: [
                                         { $eq: ["$referenceId", "$$postId"] },
+                                        { $eq: ["$isSubComment", false] }
                                     ]
-                                }
+                                },
                             }
                         },
                         {
@@ -258,7 +258,10 @@ const getAllPostDetails = async (req, res, next) => {
                                             isLike: {
                                                 $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
                                             },
-                                            likeCount: { $size: "$like" }
+                                            likeCount: { $size: "$like" },
+                                            owner:{
+                                                $arrayElemAt: ["$owner", 0]
+                                            }
                                         }
                                     },
                                     {
@@ -268,6 +271,13 @@ const getAllPostDetails = async (req, res, next) => {
                                     },
                                 ],
                                 as: "subComments"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                owner: {
+                                    $arrayElemAt: ["$owner", 0]
+                                }
                             }
                         },
                         {
@@ -281,7 +291,10 @@ const getAllPostDetails = async (req, res, next) => {
             },
             {
                 $addFields: {
-                    likeCount: { $size: "$like" }
+                    likeCount: { $size: "$like" },
+                    isLike: {
+                        $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
+                    }
                 }
             },
             {
@@ -426,6 +439,11 @@ const getAllPostDetails = async (req, res, next) => {
                     groupDetails: 0,
                     eventDetails: 0,
                     newsletterDetails: 0
+                }
+            },
+            {
+                $sort: {
+                    createdAt: -1
                 }
             }
         ]);

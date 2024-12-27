@@ -68,7 +68,7 @@ const removeLike = async (req,res,next) => {
         if(!postId)
             return next(new ErrorHandler("All fields are required", 400));
 
-        const removeLike = await Like.deleteMany({ owner: req.user.id, post: postId });
+        const removeLike = await Like.findOneAndDelete({ owner: req.user.id, post: postId });
 
         if (!removeLike)
             return next(new ErrorHandler("Like not removed Properly!", 400));

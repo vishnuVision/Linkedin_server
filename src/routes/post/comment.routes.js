@@ -5,7 +5,7 @@ import { upload } from "../../middlewares/multer.js";
 const commentRouter = Router();
 
 commentRouter.post("/addComment/:postId",upload.single("media"),addComment);
-commentRouter.put("/editComment/:id",EditComment);
+commentRouter.put("/editComment/:postId/:id",EditComment);
 commentRouter.delete("/deleteComment/:postId/:id",deleteComment);
 commentRouter.get("/getAllComment/:postId",getAllComment);
 

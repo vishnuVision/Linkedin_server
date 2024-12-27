@@ -35,7 +35,7 @@ app.use(express.static('public'));
 app.use(cookieParser());
 
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173"],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE']
 }))
@@ -44,7 +44,7 @@ const server = createServer(app);
 
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: ["http://localhost:5173"],
         methods: ["GET", "POST", "PUT", "DELETE"],
         credentials: true
     }

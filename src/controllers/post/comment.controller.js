@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import { User } from "../../models/user/user.model.js";
 import { COMMENT_POST } from "../../utils/events.js";
 import { emitEvent } from "../../utils/getMemberSocket.js";
+import { Like } from "../../models/post/like.model.js";
 
 const addComment = async (req, res, next) => {
     try {
@@ -42,16 +43,15 @@ const addComment = async (req, res, next) => {
         if (!createComment)
             return next(new ErrorHandler("Comment not created Properly!", 400));
 
-        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar");
+        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar +_id +bio");
 
         if (!user)
             return next(new ErrorHandler("User not found!", 400));
 
         emitEvent(req, next, COMMENT_POST, { post, user }, post.author);
 
-        return sendResponse(res, 200, "Comment added Successfully!", true, createComment, null);
+        return sendResponse(res, 200, "Comment added Successfully!", true, { ...createComment._doc, owner: user }, null);
     } catch (error) {
-        console.log(error)
         return next(new ErrorHandler(error.message, 500));
     }
 }
@@ -62,17 +62,58 @@ const EditComment = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const { text } = req?.body;
-        const { id } = req?.params;
+        const { postId, id } = req?.params;
 
-        if (!id || !text)
-            return next(new ErrorHandler("All fields are required", 400));
+        if (!postId || !id || !text)
+            return next(new ErrorHandler("Please try again!", 400));
 
-        const editComment = await Comment.updateOne({ _id: id, owner: req.user.id }, { text });
+        const post = await Post.findById(postId);
+
+        if (!post)
+            return next(new ErrorHandler("Post not found!", 400));
+
+        let editComment;
+
+        if (post.author.toString() === req.user.id.toString()) {
+            editComment = await Comment.findOneAndUpdate({ _id: id }, { text }, { new: true }).populate({ path: "subComments", populate: { path: "owner", select: "+firstName +lastName +avatar +_id +bio" } }).lean();
+        }
+        else {
+            editComment = await Comment.findOneAndUpdate({ _id: id, owner: req.user.id }, { text }, { new: true }).populate({ path: "subComments", populate: { path: "owner", select: "+firstName +lastName +avatar +_id +bio" } }).lean();            
+        }
 
         if (!editComment)
             return next(new ErrorHandler("Comment not updated Properly!", 400));
 
-        return sendResponse(res, 200, "Comment updated Successfully!", true, editComment, null);
+        const mainCommentLikes = await Like.find({ post: id });
+        editComment.likeCount = mainCommentLikes.length;
+        editComment.isLike = mainCommentLikes.some(
+            (like) => like.owner.toString() === req.user.id.toString()
+        );
+
+        if (editComment.subComments && editComment.subComments.length > 0) {
+            const subCommentIds = editComment.subComments.map((sub) => sub._id);
+            const subCommentLikes = await Like.find({ post: { $in: subCommentIds } });
+
+            editComment.subComments = editComment.subComments.map((subComment) => {
+                const subLikes = subCommentLikes.filter(
+                    (like) => like.post.toString() === subComment._id.toString()
+                );
+                return {
+                    ...subComment,
+                    likeCount: subLikes.length,
+                    isLike: subLikes.some(
+                        (like) => like.owner.toString() === req.user.id
+                    ),
+                };
+            });
+        }
+
+        const user = await User.findOne({ _id: editComment.owner }).select("+firstName +lastName +avatar +_id +bio").lean();
+
+        if (!user)
+            return next(new ErrorHandler("User not found!", 400));
+
+        return sendResponse(res, 200, "Comment updated Successfully!", true, { ...editComment, owner: user }, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -93,13 +134,14 @@ const deleteComment = async (req, res, next) => {
         if (!post)
             return next(new ErrorHandler("Post not found!", 400));
 
-        const comment = await Comment.findOneAndDelete({
-            _id: id,
-            $or: [
-                { owner: req.user.id },
-                { owner: post.author }
-            ]
-        });
+        let comment;
+
+        if (post.author.toString() === req.user.id.toString()) {
+            comment = await Comment.findOneAndDelete({ _id: id });
+        }
+        else {
+            comment = await Comment.findOneAndDelete({ _id: id, owner: req.user.id });
+        }
 
         if (!comment)
             return next(new ErrorHandler("Comment not deleted Properly!", 400));
@@ -248,8 +290,6 @@ const addSubComment = async (req, res, next) => {
         const { postId, commentId } = req?.params;
         const path = req?.file?.path;
 
-        console.log(path)
-
         if (!postId || !commentId)
             return next(new ErrorHandler("All fields are required", 400));
 
@@ -264,8 +304,6 @@ const addSubComment = async (req, res, next) => {
             if (!media)
                 return next(new ErrorHandler("Media not uploaded Properly!", 400));
         }
-
-        console.log(media)
 
         const post = await Post.findById(postId);
 
@@ -286,14 +324,14 @@ const addSubComment = async (req, res, next) => {
         if (!comment)
             return next(new ErrorHandler("Comment not updated Properly!", 400));
 
-        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar");
+        const user = await User.findById(req.user.id).select("+firstName +lastName +avatar").lean();
 
         if (!user)
             return next(new ErrorHandler("User not found!", 400));
 
         emitEvent(req, next, COMMENT_POST, { post, user }, post.author);
 
-        return sendResponse(res, 200, "Comment added Successfully!", true, createsubComment, null);
+        return sendResponse(res, 200, "Comment added Successfully!", true,{...createsubComment._doc,owner:user}, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
