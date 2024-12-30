@@ -16,8 +16,6 @@ const skillSchema = Schema({
     }],
     reference:[{
         type: Schema.Types.ObjectId,
-        ref: "Education",
-        ref: "Experience",
     }],
     owner:{
         type: Schema.Types.ObjectId,

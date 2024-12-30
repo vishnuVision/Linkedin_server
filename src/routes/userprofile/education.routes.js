@@ -4,7 +4,7 @@ import { upload } from "../../middlewares/multer.js"
 
 const educationRouter = Router();
 
-educationRouter.get("/",getAllEducations);
+educationRouter.get("/:id",getAllEducations);
 educationRouter.post("/createEducation",upload.array("media",5),createEducation);
 educationRouter.put("/editEducation/:id",upload.array("media",5),editEducation);
 educationRouter.delete("/deleteEducation/:id",deleteEducation);

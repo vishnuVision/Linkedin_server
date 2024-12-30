@@ -156,10 +156,15 @@ const deleteEducation = async (req, res, next) => {
 
 const getAllEducations = async (req, res, next) => {
     try {
+        const { id } = req.params;
+
+        if (!id)
+            return next(new ErrorHandler("All fields are required", 400));
+
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
         
-        const education = await Education.find({alumini: req.user.id});
+        const education = await Education.find({alumini: id}).populate("school","logo name");
 
         if (!education)
             return next(new ErrorHandler("Education not found!", 400));

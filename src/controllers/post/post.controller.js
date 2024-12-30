@@ -26,11 +26,7 @@ const createPost = async (req, res, next) => {
         if (files.length > 0) {
             const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
                 try {
-                    if (isVideo) {
-                        const { url } = await uploadLargeVideo(file?.path);
-                        return url;
-                    }
-                    else {
+                    if (isVideo == "false") {
                         const { url } = await uploadOnCloudinary(file.path, next, {
                             transformation: [
                                 { width: 1024, height: 1024, crop: "limit" },
@@ -38,6 +34,10 @@ const createPost = async (req, res, next) => {
                                 { fetch_format: "auto" }
                             ]
                         });
+                        return url;
+                    }
+                    else {
+                        const { url } = await uploadLargeVideo(file?.path);
                         return url;
                     }
                 } catch (error) {
@@ -259,7 +259,7 @@ const getAllPostDetails = async (req, res, next) => {
                                                 $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
                                             },
                                             likeCount: { $size: "$like" },
-                                            owner:{
+                                            owner: {
                                                 $arrayElemAt: ["$owner", 0]
                                             }
                                         }
@@ -603,22 +603,217 @@ const listAllPostOfUser = async (req, res, next) => {
         if (!id)
             return next(new ErrorHandler("All fields are required", 400));
 
-        if (isAuthor) {
-            const post = await Post.find({ author: req.user.id, type: "post", referenceId: { $exists: false } });
+        const post = await Post.aggregate([
+            {
+                $match: 
+            { referenceId: new mongoose.Types.ObjectId(id) },
+            },
+            {
+                $lookup: {
+                    from: "likes",
+                    let: { postId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$post", "$$postId"] },
+                                        { $eq: ["$type", "post"] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "like"
+                }
+            },
+            {
+                $lookup: {
+                    from: "comments",
+                    let: { postId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ["$referenceId", "$$postId"] },
+                                        { $eq: ["$isSubComment", false] }
+                                    ]
+                                },
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                let: { userId: "$owner" },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $and: [
+                                                    { $eq: ["$_id", "$$userId"] },
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $project: {
+                                            firstName: 1,
+                                            lastName: 1,
+                                            username: 1,
+                                            avatar: 1
+                                        }
+                                    }
+                                ],
+                                as: "owner"
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "likes",
+                                let: { commentId: "$_id" },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $and: [
+                                                    { $eq: ["$post", "$$commentId"] },
+                                                    { $eq: ["$type", "comment"] }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ],
+                                as: "like"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                isLike: {
+                                    $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
+                                },
+                                likeCount: { $size: "$like" }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "comments",
+                                let: { commentId: "$_id" },
+                                pipeline: [
+                                    {
+                                        $match: {
+                                            $expr: {
+                                                $and: [
+                                                    { $eq: ["$parentComment", "$$commentId"] },
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $lookup: {
+                                            from: "users",
+                                            let: { userId: "$owner" },
+                                            pipeline: [
+                                                {
+                                                    $match: {
+                                                        $expr: {
+                                                            $and: [
+                                                                { $eq: ["$_id", "$$userId"] },
+                                                            ]
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    $project: {
+                                                        firstName: 1,
+                                                        lastName: 1,
+                                                        username: 1,
+                                                        avatar: 1
+                                                    }
+                                                }
+                                            ],
+                                            as: "owner"
+                                        }
+                                    },
+                                    {
+                                        $lookup: {
+                                            from: "likes",
+                                            let: { commentId: "$_id" },
+                                            pipeline: [
+                                                {
+                                                    $match: {
+                                                        $expr: {
+                                                            $and: [
+                                                                { $eq: ["$post", "$$commentId"] },
+                                                                { $eq: ["$type", "comment"] }
+                                                            ]
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            as: "like"
+                                        }
+                                    },
+                                    {
+                                        $addFields: {
+                                            isLike: {
+                                                $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
+                                            },
+                                            likeCount: { $size: "$like" },
+                                            owner: {
+                                                $arrayElemAt: ["$owner", 0]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        $project: {
+                                            like: 0,
+                                        }
+                                    },
+                                ],
+                                as: "subComments"
+                            }
+                        },
+                        {
+                            $addFields: {
+                                owner: {
+                                    $arrayElemAt: ["$owner", 0]
+                                }
+                            }
+                        },
+                        {
+                            $project: {
+                                like: 0,
+                            }
+                        },
+                    ],
+                    as: "comment"
+                }
+            },
+            {
+                $addFields: {
+                    likeCount: { $size: "$like" },
+                    isLike: {
+                        $in: [new mongoose.Types.ObjectId(req.user.id), "$like.owner"]
+                    }
+                }
+            },
+            {
+                $project: {
+                    like: 0,
+                }
+            },
+            {
+                $sort: {
+                    createdAt: -1
+                }
+            }
+        ]);
 
-            if (!post)
-                return next(new ErrorHandler("Post not found!", 400));
+        if (!post)
+            return next(new ErrorHandler("Post not found!", 400));
 
-            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
-        }
-        else {
-            const post = await Post.find({ referenceId: id, type: "post" });
-
-            if (!post)
-                return next(new ErrorHandler("Post not found!", 400));
-
-            return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
-        }
+        return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }

@@ -153,10 +153,15 @@ const deleteExperience = async (req, res, next) => {
 
 const getAllExperiences = async (req, res, next) => {
     try {
+        const { id } = req.params;
+
+        if (!id)
+            return next(new ErrorHandler("All fields are required", 400));
+
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const experience = await Experience.find({ employee: req.user.id });
+        const experience = await Experience.find({ employee: id }).populate("company","name logo")
 
         if (!experience)
             return next(new ErrorHandler("Experience not found!", 400));

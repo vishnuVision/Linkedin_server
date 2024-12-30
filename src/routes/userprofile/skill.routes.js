@@ -6,7 +6,7 @@ const skillRouter = Router();
 skillRouter.post("/createSkill",createSkill);
 skillRouter.put("/editSkill/:id",editSkill);
 skillRouter.delete("/deleteSkill/:id",deleteSkill);
-skillRouter.get("/getAllSkill",getAllSkills);
+skillRouter.get("/getAllSkill/:id",getAllSkills);
 skillRouter.put("/endorseSkill/:id",endorseSkill);
 
 export default skillRouter;
