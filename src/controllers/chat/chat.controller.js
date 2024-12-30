@@ -9,8 +9,14 @@ const sendMessage = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { content="",receiver,chatId } = req?.body;
-        const files = req?.files || [];
+        if(!req?.body)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        if(!req?.files)
+            return next(new ErrorHandler("All fields are required", 400));
+
+        const { content="",receiver,chatId } = req.body;
+        const files = req.files || [];
 
         if(!receiver || (!content && files.length === 0))
             return next(new ErrorHandler("All fields are required", 400));
