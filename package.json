@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon ./src/app.js",
-    "build": "npx babel src -d dist",
-    "start": "node ./dist/app.js"
+    "build": "node ./src/app.js",
+    "start": "node ./src/app.js"
   },
   "keywords": [],
   "author": "",
