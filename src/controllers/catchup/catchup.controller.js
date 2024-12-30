@@ -14,7 +14,7 @@ const getAllCatchup = async (req, res, next) => {
             return next(new ErrorHandler("User not found", 400));
 
         const catchup = await Catchup.find({
-            owner: { $in: [...(user?.following || []), ...(user?.followers || [])] }
+            owner: { $in: [...(user.following || []), ...(user.followers || [])] }
         })
             .populate("owner", "firstName lastName avatar")
             .populate({
