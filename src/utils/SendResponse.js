@@ -1,9 +1,8 @@
 const cookieOption = {
     maxAge: 24 * 60 * 60 * 1000,
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
-    path: "/"
+    sameSite:"none",
+    httpOnly:true,
+    secure:true,
 }
 
 const sendResponse = (res, status, message, success, data, cookie) => {

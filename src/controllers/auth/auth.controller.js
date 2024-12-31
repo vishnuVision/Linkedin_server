@@ -62,14 +62,12 @@ const getAllPages = async (req, res, next) => {
         const { type } = req?.params;
 
         let pages = [];
-        if(type==="all")
-        {
+        if (type === "all") {
             pages = await Page.find().select("name _id")
         }
-        else
-        {
+        else {
             pages = await Page.find({ type }).select("name _id")
-        }   
+        }
 
         if (!pages)
             return sendResponse(res, 400, "No Pages found", false, null, null);
@@ -152,10 +150,10 @@ const logout = async (req, res, next) => {
         return res
             .status(200)
             .clearCookie("userToken", {
-                httpOnly: true,
+                maxAge: 24 * 60 * 60 * 1000,
                 sameSite: "none",
+                httpOnly: true,
                 secure: true,
-                path: "/"
             })
             .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
