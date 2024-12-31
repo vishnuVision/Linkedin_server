@@ -1,3 +1,4 @@
+import { Page } from "../../models/page/page.model.js";
 import { Education } from "../../models/user/education.model.js";
 import { Experience } from "../../models/user/experience.model.js";
 import { User } from "../../models/user/user.model.js";
@@ -51,6 +52,23 @@ const register = async (req, res, next) => {
             return sendResponse(res, 400, "user not signup Properly!", false, null, null);
 
         return sendResponse(res, 200, "user signup successfully!", true, userData, token);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
+const getAllPages = async (req, res, next) => {
+    try {
+        const { type } = req?.params;
+
+        if (!type)
+            return sendResponse(res, 400, "All fields are required", false, null, null);
+
+        const pages = await Page.find({type}).select("name _id");
+        if (!pages)
+            return sendResponse(res, 400, "No Pages found", false, null, null);
+
+        return sendResponse(res, 200, "Pages fetched successfully!", true, pages, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -159,5 +177,6 @@ export {
     getUserDetails,
     logout,
     deleteUser,
-    addReuiredDetails
+    addReuiredDetails,
+    getAllPages
 }
