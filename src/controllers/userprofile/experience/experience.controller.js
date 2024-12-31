@@ -13,15 +13,15 @@ const createExperience = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { company, title, startMonth, startYear, endYear, endMonth, description, employmentType, location, locationType, skills = ["Java", "Javascript"], isPresent } = req?.body;
+        const { company, title, startMonth, startYear, endYear, endMonth, description, employmentType, location, locationType, skills, isPresent, mediatitle, mediaDescription } = req?.body;
         const files = req.files || [];
 
-        if (!company || !title || !startMonth || !startYear || !endMonth || !endYear || !description || !employmentType || !location || !locationType)
+        if (!company || !title || !startMonth || !startYear || !description || !employmentType || !location || !locationType)
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -30,7 +30,7 @@ const createExperience = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url };
+                    return { url, title: mediatitle[index], description: mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }

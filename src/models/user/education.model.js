@@ -11,15 +11,12 @@ const educationSchema = Schema({
     fieldOfStudy: String,
     startYear: {
         type: String,
-        // required: true
     },
     startMonth: {
         type: String,
-        // required: true
     },
     endYear: {
         type: String,
-        // required: true
     },
     endMonth:{
         type: String,
@@ -29,8 +26,8 @@ const educationSchema = Schema({
     description: String,
     media: [
         {
-            // title: String,
-            // description: String,
+            title: String,
+            description: String,
             url: String
         }
     ],

@@ -8,8 +8,10 @@ const experienceSchema = Schema({
         required: true
     },
     title: String,
-    startYear: Date,
-    endYear: Date,
+    startMonth: String,
+    endMonth: String,
+    startYear: String,
+    endYear: String,
     description: String,
     media: [
         {

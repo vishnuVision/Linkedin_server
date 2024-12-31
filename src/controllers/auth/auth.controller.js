@@ -61,10 +61,16 @@ const getAllPages = async (req, res, next) => {
     try {
         const { type } = req?.params;
 
-        if (!type)
-            return sendResponse(res, 400, "All fields are required", false, null, null);
+        let pages = [];
+        if(type==="all")
+        {
+            pages = await Page.find().select("name _id")
+        }
+        else
+        {
+            pages = await Page.find({ type }).select("name _id")
+        }   
 
-        const pages = await Page.find({type}).select("name _id");
         if (!pages)
             return sendResponse(res, 400, "No Pages found", false, null, null);
 

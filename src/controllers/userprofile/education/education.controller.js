@@ -13,7 +13,7 @@ const createEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, isPresent, skills = ["Java", "Javascript"] } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, mediatitle, mediaDescription } = req?.body;
         const files = req.files || [];
 
         if (!school || !degree || !fieldOfStudy || !startMonth || !startYear || !endYear || !endMonth || !grade || !activities || !description)
@@ -21,7 +21,7 @@ const createEducation = async (req, res, next) => {
 
         let media = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -30,7 +30,7 @@ const createEducation = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url };
+                    return { url, title: mediatitle[index], description: mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }
@@ -42,7 +42,7 @@ const createEducation = async (req, res, next) => {
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
         
-        const education = await Education.create({ school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, media, alumini: req.user.id, isPresent });
+        const education = await Education.create({ school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, media, alumini: req.user.id });
 
         if (!education)
             return next(new ErrorHandler("Education not created", 400));
