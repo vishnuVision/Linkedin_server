@@ -3,6 +3,7 @@ const cookieOption = {
     httpOnly: true,
     sameSite: "none",
     secure: true,
+    path: "/"
 }
 
 const sendResponse = (res, status, message, success, data, cookie) => {
