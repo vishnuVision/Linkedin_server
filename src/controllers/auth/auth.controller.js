@@ -127,7 +127,12 @@ const logout = async (req, res, next) => {
 
         return res
             .status(200)
-            .clearCookie("userToken")
+            .clearCookie("userToken", {
+                httpOnly: true,
+                sameSite: "none",
+                secure: true,
+                path: "/"
+            })
             .json({ success: true, message: "user logout successfully!" });
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
