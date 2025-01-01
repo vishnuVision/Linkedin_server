@@ -179,7 +179,7 @@ const getProfile = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        const user = await User.findById(id).select("-password -__v -birhday -email -educations -experiences -isJobAccountVerified -language -updatedAt -createdAt");
+        const user = await User.findById(id).select("-password -__v");
 
         if (!user)
             return sendResponse(res, 400, "please login!", false, null, null);

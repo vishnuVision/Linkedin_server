@@ -7,6 +7,7 @@ import { Catchup } from "../../../models/notification/catchup.model.js";
 import { emitEvent } from "../../../utils/getMemberSocket.js";
 import { NEW_CATCH_UP } from "../../../utils/events.js";
 import { User } from "../../../models/user/user.model.js";
+import mongoose from "mongoose";
 
 const createExperience = async (req, res, next) => {
     try {
@@ -21,7 +22,7 @@ const createExperience = async (req, res, next) => {
 
         let media = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
+            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file, index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -49,8 +50,8 @@ const createExperience = async (req, res, next) => {
 
         let skillList = [];
 
-        if (skills.length > 0) {
-            const skillsPromise = await Promise.all(skills.map(async (skill) => {
+        if (skills?.length > 0) {
+            const skillsPromise = await Promise.all(skills?.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
                 if (skillObj === null) {
                     const skilldata = await Skill.create({ name: skill, owner: req.user.id, reference: [experience._id] });
@@ -68,14 +69,14 @@ const createExperience = async (req, res, next) => {
 
         const user = await User.findById(req.user.id);
 
-        if(!user)
+        if (!user)
             return next(new ErrorHandler("User not found", 400));
 
         const { followers, following } = user;
 
         emitEvent(req, next, NEW_CATCH_UP, null, [...followers, ...following])
 
-        return sendResponse(res, 200, "Experience created successfully!", true,{ experience, skills: skillList } , null);
+        return sendResponse(res, 200, "Experience created successfully!", true, { experience, skills: skillList }, null);
     }
     catch (error) {
         return next(new ErrorHandler(error.message, 500));
@@ -161,7 +162,42 @@ const getAllExperiences = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const experience = await Experience.find({ employee: id }).populate("company","name logo")
+        // const experience = await Experience.find({ employee: id }).populate("company", "name logo")
+
+        // const experience = await Experience.aggregate([
+        //     { $match: { employee: new mongoose.Types.ObjectId(id) } },
+        //     {
+        //         $lookup: {
+        //             from: "companies",
+        //             localField: "company",
+        //             foreignField: "_id",
+        //             as: "companyDetails",
+        //         },
+        //     },
+        //     { $unwind: "$companyDetails" },
+        //     {
+        //         $project: {
+        //             _id: 1,
+        //             title: 1,
+        //             company: {
+        //                 name: "$companyDetails.name",
+        //                 logo: "$companyDetails.logo",
+        //             },
+        //             // skills: {
+        //             //     $map: {
+        //             //         input: "$skillsDetails",
+        //             //         as: "skill",
+        //             //         in: "$$skill.name",
+        //             //     },
+        //             // },
+        //             startMonth: 1,
+        //             startYear: 1,
+        //             endMonth: 1,
+        //             endYear: 1,
+        //             isPresent: 1,
+        //         },
+        //     },
+        // ]);
 
         if (!experience)
             return next(new ErrorHandler("Experience not found!", 400));

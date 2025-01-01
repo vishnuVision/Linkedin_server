@@ -8,12 +8,12 @@ const editProfile = async (req,res,next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website  } = req?.body;
+        const { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website,email, phoneNumber, phoneType, address, birthday  } = req?.body;
 
         if (!firstName || !lastName || !additionalName || !pronouns || !bio || !industry || !region || !city || !website)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
-        const user = await User.findByIdAndUpdate(req.user.id, { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website }, { new: true });
+        const user = await User.findByIdAndUpdate(req.user.id, { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website, email, phoneNumber, phoneType, address, birthday }, { new: true });
 
         if(!user)
             return sendResponse(res, 400, "user profile not updated Properly!", false, null, null);
