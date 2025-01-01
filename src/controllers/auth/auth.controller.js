@@ -175,6 +175,21 @@ const deleteUser = async (req, res, next) => {
     }
 }
 
+const getProfile = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const user = await User.findById(id).select("-password -__v -birhday -email -educations -experiences -isJobAccountVerified -language -updatedAt -createdAt");
+
+        if (!user)
+            return sendResponse(res, 400, "please login!", false, null, null);
+
+        return sendResponse(res, 200, "user fetched successfully!", true, user, null);
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
 export {
     login,
     register,
@@ -182,5 +197,6 @@ export {
     logout,
     deleteUser,
     addReuiredDetails,
-    getAllPages
+    getAllPages,
+    getProfile
 }

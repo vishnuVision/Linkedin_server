@@ -51,7 +51,7 @@ const createEducation = async (req, res, next) => {
 
         if(skills.length > 0)
         {
-            const skillsPromise = await Promise.all(skills.map(async (skill) => {
+            const skillsPromise = await Promise.all(skills?.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
                 if (skillObj===null)
                 {
