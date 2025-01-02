@@ -18,6 +18,11 @@ const addLike = async (req,res,next) => {
         if(!postId || !type)
             return next(new ErrorHandler("All fields are required", 400));
 
+        const like = await Like.findOne({ owner: req.user.id, post: postId });
+
+        if (like)
+            return next(new ErrorHandler("You've Already like a post!", 400));
+
         const createLike = await Like.create({ owner: req.user.id, type, post: postId });
 
         if (!createLike)
