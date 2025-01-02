@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Catchup } from "../../../models/notification/catchup.model.js";
 import { Education } from "../../../models/user/education.model.js";
 import { Skill } from "../../../models/user/skill.model.js";
@@ -13,15 +14,15 @@ const createEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, mediatitle, mediaDescription } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, mediatitle, mediaDescription, isPresent } = req?.body;
         const files = req.files || [];
 
-        if (!school || !degree || !fieldOfStudy || !startMonth || !startYear || !endYear || !endMonth || !grade || !activities || !description)
+        if (!school || !degree || !fieldOfStudy || !startMonth || !startYear || !grade || !activities || !description)
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
+            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file, index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -41,25 +42,22 @@ const createEducation = async (req, res, next) => {
 
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
-        
-        const education = await Education.create({ school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, media, alumini: req.user.id });
+
+        const education = await Education.create({ school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, media, alumini: req.user.id, isPresent });
 
         if (!education)
             return next(new ErrorHandler("Education not created", 400));
 
         let skillList = [];
+        if (skills.length > 0) {
 
-        if(skills.length > 0)
-        {
-            const skillsPromise = await Promise.all(skills?.map(async (skill) => {
+            const skillsPromise = await Promise.all([...skills]?.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
-                if (skillObj===null)
-                {
+                if (skillObj === null) {
                     const skilldata = await Skill.create({ name: skill, owner: req.user.id, reference: [education._id] });
                     return skilldata;
                 }
-                else
-                {
+                else {
                     const skilldata = await Skill.findByIdAndUpdate(skillObj._id, { reference: [...skillObj.reference, education._id] }, { new: true });
                     return skilldata;
                 }
@@ -71,14 +69,14 @@ const createEducation = async (req, res, next) => {
 
         const user = await User.findById(req.user.id);
 
-        if(!user)
+        if (!user)
             return next(new ErrorHandler("User not found", 400));
 
         const { followers, following } = user;
 
         emitEvent(req, next, NEW_CATCH_UP, null, [...followers, ...following])
 
-        return sendResponse(res, 200, "Education created successfully!", true, {education,skills: skillList}, null);
+        return sendResponse(res, 200, "Education created successfully!", true, { education, skills: skillList }, null);
     }
     catch (error) {
         return next(new ErrorHandler(error.message, 500));
@@ -90,11 +88,27 @@ const editEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills = ["Java", "Javascript"], isPresent } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, isPresent, uploadedMedia } = req?.body;
         const files = req.files || [];
         const { id } = req.params;
 
-        if (!school || !degree || !id || !fieldOfStudy || !startMonth || !startYear || !endYear || !endMonth || !grade || !activities || !description)
+        let prevUploaded = [];
+
+        if (uploadedMedia) {
+            if(typeof uploadedMedia === "string" && uploadedMedia) {
+                prevUploaded = [JSON.parse(uploadedMedia)];
+            }
+            else
+            {
+                if (uploadedMedia?.length > 0) {
+                    prevUploaded = uploadedMedia.map((media) => {
+                        return JSON.parse(media);
+                    });
+                }
+            }
+        }
+
+        if (!school || !degree || !id || !fieldOfStudy || !startMonth || !startYear || !grade || !activities || !description)
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
@@ -114,13 +128,13 @@ const editEducation = async (req, res, next) => {
                 }
             }))
 
-            media = uploadFilesOnCloudinaryPromise;
+            media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
         }
 
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
-        
-        const education = await Education.findOneAndUpdate({alumini: req.user.id,_id: id},{ school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, media, alumini: req.user.id, isPresent },{new: true});
+
+        const education = await Education.findOneAndUpdate({ alumini: req.user.id, _id: id }, { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, media, alumini: req.user.id, isPresent }, { new: true });
 
         if (!education)
             return next(new ErrorHandler("Education not updated", 400));
@@ -128,6 +142,7 @@ const editEducation = async (req, res, next) => {
         return sendResponse(res, 200, "Education updated successfully!", true, education, null);
     }
     catch (error) {
+        console.log(error);
         return next(new ErrorHandler(error.message, 500));
     }
 }
@@ -141,8 +156,8 @@ const deleteEducation = async (req, res, next) => {
 
         if (!id)
             return next(new ErrorHandler("All fields are required", 400));
-        
-        const education = await Education.findOneAndDelete({alumini: req.user.id,_id: id});
+
+        const education = await Education.findOneAndDelete({ alumini: req.user.id, _id: id });
 
         if (!education)
             return next(new ErrorHandler("Education not deleted", 400));
@@ -163,8 +178,68 @@ const getAllEducations = async (req, res, next) => {
 
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
-        
-        const education = await Education.find({alumini: id}).populate("school","logo name");
+
+        // const education = await Education.find({alumini: id}).populate("school","logo name");
+
+        const education = await Education.aggregate([
+            { $match: { alumini: new mongoose.Types.ObjectId(id) } },
+            {
+                $lookup: {
+                    from: "pages",
+                    localField: "school",
+                    foreignField: "_id",
+                    as: "schoolDetails",
+                },
+            },
+            {
+                $lookup: {
+                    from: "skills",
+                    let: { educationId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $in: ["$$educationId", "$reference"],
+                                },
+                            },
+                        },
+                    ],
+                    as: "skillsDetails",
+                },
+            },
+            {
+                $unwind: "$schoolDetails",
+            },
+            {
+                $project: {
+                    _id: 1,
+                    school: {
+                        _id: "$schoolDetails._id",
+                        name: "$schoolDetails.name",
+                        logo: "$schoolDetails.logo",
+                    },
+                    skills: {
+                        $map: {
+                            input: "$skillsDetails",
+                            as: "skill",
+                            in: "$$skill.name",
+                        },
+                    },
+                    degree: 1,
+                    fieldOfStudy: 1,
+                    startYear: 1,
+                    startMonth: 1,
+                    endYear: 1,
+                    endMonth: 1,
+                    grade: 1,
+                    activities: 1,
+                    description: 1,
+                    media: 1,
+                    isPresent: 1,
+                    alumini: 1,
+                },
+            },
+        ]);
 
         if (!education)
             return next(new ErrorHandler("Education not found!", 400));

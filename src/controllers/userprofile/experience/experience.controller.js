@@ -88,11 +88,26 @@ const editExperience = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { company, title, startMonth, startYear, endYear, endMonth, description, employmentType, location, locationType, skills = ["Java", "Javascript"], isPresent } = req?.body;
+        const { company, title, startMonth, startYear, endYear="", endMonth="", description, employmentType, location, locationType, skills, isPresent, uploadedMedia } = req?.body;
         const files = req.files || [];
         const { id } = req?.params;
+        let prevUploaded = [];
 
-        if (!company || !title || !id || !startMonth || !startYear || !endMonth || !endYear || !description || !employmentType || !location || !locationType)
+        if(uploadedMedia)
+        {
+            if(uploadedMedia?.length > 0)
+            {
+                prevUploaded = uploadedMedia.map((media) => {
+                    return JSON.parse(media);
+                });
+            }
+            else
+            {
+                prevUploaded = [JSON.parse(uploadedMedia)];
+            }
+        }
+
+        if (!company || !title || !id || !startMonth || !startYear || !description || !employmentType || !location || !locationType)
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
@@ -112,7 +127,7 @@ const editExperience = async (req, res, next) => {
                 }
             }))
 
-            media = uploadFilesOnCloudinaryPromise;
+            media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
         }
 
         if (files.length > 0 && media.length === 0)
@@ -162,42 +177,66 @@ const getAllExperiences = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        // const experience = await Experience.find({ employee: id }).populate("company", "name logo")
-
-        // const experience = await Experience.aggregate([
-        //     { $match: { employee: new mongoose.Types.ObjectId(id) } },
-        //     {
-        //         $lookup: {
-        //             from: "companies",
-        //             localField: "company",
-        //             foreignField: "_id",
-        //             as: "companyDetails",
-        //         },
-        //     },
-        //     { $unwind: "$companyDetails" },
-        //     {
-        //         $project: {
-        //             _id: 1,
-        //             title: 1,
-        //             company: {
-        //                 name: "$companyDetails.name",
-        //                 logo: "$companyDetails.logo",
-        //             },
-        //             // skills: {
-        //             //     $map: {
-        //             //         input: "$skillsDetails",
-        //             //         as: "skill",
-        //             //         in: "$$skill.name",
-        //             //     },
-        //             // },
-        //             startMonth: 1,
-        //             startYear: 1,
-        //             endMonth: 1,
-        //             endYear: 1,
-        //             isPresent: 1,
-        //         },
-        //     },
-        // ]);
+        const experience = await Experience.aggregate([
+            { $match: { employee: new mongoose.Types.ObjectId(id) } },
+            {
+                $lookup: {
+                    from: "pages",
+                    localField: "company",
+                    foreignField: "_id",
+                    as: "companyDetails",
+                },
+            },
+            {
+                $lookup: {
+                    from: "skills",
+                    let: { experienceId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $in: ["$$experienceId", "$reference"],
+                                },
+                            },
+                        },
+                    ],
+                    as: "skillsDetails",
+                },
+            },
+            {
+                $unwind: "$companyDetails",
+            },
+            {
+                $project: {
+                    _id: 1,
+                    title: 1,
+                    company: {
+                        _id: "$companyDetails._id",
+                        name: "$companyDetails.name",
+                        logo: "$companyDetails.logo",
+                    },
+                    skills: {
+                        $map: {
+                            input: "$skillsDetails",
+                            as: "skill",
+                            in: "$$skill.name",
+                        },
+                    },
+                    media:1,
+                    startMonth: 1,
+                    startYear: 1,
+                    endMonth: 1,
+                    endYear: 1,
+                    isPresent: 1,
+                    employmentType: 1,
+                    location: 1,
+                    description: 1,
+                    isPresent: 1,
+                    locationType: 1,
+                    employee: 1,
+                },
+            },
+        ]);
 
         if (!experience)
             return next(new ErrorHandler("Experience not found!", 400));
