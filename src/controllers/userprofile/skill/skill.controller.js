@@ -179,6 +179,34 @@ const editSkill = async (req, res, next) => {
     }
 }
 
+const getAllSkillsForDropdown = async (req,res,next) => {
+    try {
+        if (!req.user)
+            return next(new ErrorHandler("Please login", 400));
+
+        const { name } = req?.body;
+
+        let skills = [];
+
+        if(!name)
+        {
+            skills = await Skill.find().select("name");
+        }
+        else
+        {
+            skills = await Skill.find({ name: new RegExp(name, 'i') }).select('name');
+        }
+
+        if (!skills)
+            return sendResponse(res, 400, "Skill not found!", false, null, null);
+
+        return sendResponse(res, 200, "Skill fetched successfully!", true, skills, null);
+    }
+    catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+}
+
 const endorseSkill = async (req, res, next) => {
     try {
         if (!req.user)
@@ -206,5 +234,6 @@ export {
     deleteSkill,
     getAllSkills,
     editSkill,
-    endorseSkill
+    endorseSkill,
+    getAllSkillsForDropdown
 }
