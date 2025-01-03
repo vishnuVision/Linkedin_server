@@ -31,7 +31,7 @@ const createEducation = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url, title: mediatitle[index], description: mediaDescription[index] };
+                    return { url, title: typeof mediatitle === "string" ? mediatitle : mediatitle[index], description: typeof mediaDescription === "string" ? mediaDescription : mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }
@@ -88,7 +88,7 @@ const editEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, isPresent, uploadedMedia } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, isPresent, uploadedMedia, mediatitle, mediaDescription } = req?.body;
         const files = req.files || [];
         const { id } = req.params;
 
@@ -113,7 +113,7 @@ const editEducation = async (req, res, next) => {
         let media = [];
         let uploadFilesOnCloudinaryPromise = [];
         if (files.length > 0) {
-            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -122,7 +122,7 @@ const editEducation = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url };
+                    return { url, title: typeof mediatitle === "string" ? mediatitle : mediatitle[index], description: typeof mediaDescription === "string" ? mediaDescription : mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }

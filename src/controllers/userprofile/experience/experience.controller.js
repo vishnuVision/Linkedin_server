@@ -32,7 +32,7 @@ const createExperience = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url, title: mediatitle[index], description: mediaDescription[index] };
+                    return { url, title: typeof mediatitle === "string" ? mediatitle : mediatitle[index], description: typeof mediaDescription === "string" ? mediaDescription : mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }
@@ -89,7 +89,7 @@ const editExperience = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { company, title, startMonth, startYear, endYear = "", endMonth = "", description, employmentType, location, locationType, skills, isPresent, uploadedMedia } = req?.body;
+        const { company, title, startMonth, startYear, endYear = "", endMonth = "", description, employmentType, location, locationType, skills, isPresent, uploadedMedia, mediaDescription, mediatitle } = req?.body;
         const files = req.files || [];
         const { id } = req?.params;
         let prevUploaded = [];
@@ -111,7 +111,7 @@ const editExperience = async (req, res, next) => {
         let media = [];
         let uploadFilesOnCloudinaryPromise = [];
         if (files.length > 0) {
-            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -120,7 +120,7 @@ const editExperience = async (req, res, next) => {
                             { fetch_format: "auto" }
                         ]
                     });
-                    return { url };
+                    return { url, title: typeof mediatitle === "string" ? mediatitle : mediatitle[index], description: typeof mediaDescription === "string" ? mediaDescription : mediaDescription[index] };
                 } catch (error) {
                     return next(new ErrorHandler(error.message, 500));
                 }
