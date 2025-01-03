@@ -49,7 +49,7 @@ const createEducation = async (req, res, next) => {
             return next(new ErrorHandler("Education not created", 400));
 
         let skillList = [];
-        if (skills.length > 0) {
+        if (skills?.length > 0) {
 
             const skillsPromise = await Promise.all([...skills]?.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
@@ -95,11 +95,10 @@ const editEducation = async (req, res, next) => {
         let prevUploaded = [];
 
         if (uploadedMedia) {
-            if(typeof uploadedMedia === "string" && uploadedMedia) {
+            if (typeof uploadedMedia === "string" && uploadedMedia) {
                 prevUploaded = [JSON.parse(uploadedMedia)];
             }
-            else
-            {
+            else {
                 if (uploadedMedia?.length > 0) {
                     prevUploaded = uploadedMedia.map((media) => {
                         return JSON.parse(media);
@@ -112,8 +111,9 @@ const editEducation = async (req, res, next) => {
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
+        let uploadFilesOnCloudinaryPromise = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -127,9 +127,9 @@ const editEducation = async (req, res, next) => {
                     return next(new ErrorHandler(error.message, 500));
                 }
             }))
-
-            media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
         }
+
+        media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
 
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
@@ -179,17 +179,39 @@ const getAllEducations = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        // const education = await Education.find({alumini: id}).populate("school","logo name");
-
         const education = await Education.aggregate([
-            { $match: { alumini: new mongoose.Types.ObjectId(id) } },
+            {
+                $match: { alumini: new mongoose.Types.ObjectId(id) }
+            },
+            {
+                $addFields: {
+                    school: {
+                        $cond: {
+                            if: {
+                                $and: [
+                                    { $eq: [{ $type: "$school" }, "string"] },
+                                    { 
+                                        $regexMatch: {
+                                            input: "$school", 
+                                            regex: /^[a-fA-F0-9]{24}$/,
+                                            options: ""
+                                        }
+                                    }
+                                ]
+                            },
+                            then: { $toObjectId: "$school" },
+                            else: "$school"
+                        }
+                    }
+                }
+            },
             {
                 $lookup: {
                     from: "pages",
                     localField: "school",
                     foreignField: "_id",
-                    as: "schoolDetails",
-                },
+                    as: "schoolDetails"
+                }
             },
             {
                 $lookup: {
@@ -198,33 +220,18 @@ const getAllEducations = async (req, res, next) => {
                     pipeline: [
                         {
                             $match: {
-                                $expr: {
-                                    $in: ["$$educationId", "$reference"],
-                                },
-                            },
-                        },
+                                $expr: { 
+                                    $in: ["$$educationId", "$reference"]
+                                }
+                            }
+                        }
                     ],
-                    as: "skillsDetails",
-                },
-            },
-            {
-                $unwind: "$schoolDetails",
+                    as: "skillsDetails"
+                }
             },
             {
                 $project: {
                     _id: 1,
-                    school: {
-                        _id: "$schoolDetails._id",
-                        name: "$schoolDetails.name",
-                        logo: "$schoolDetails.logo",
-                    },
-                    skills: {
-                        $map: {
-                            input: "$skillsDetails",
-                            as: "skill",
-                            in: "$$skill.name",
-                        },
-                    },
                     degree: 1,
                     fieldOfStudy: 1,
                     startYear: 1,
@@ -237,8 +244,37 @@ const getAllEducations = async (req, res, next) => {
                     media: 1,
                     isPresent: 1,
                     alumini: 1,
-                },
-            },
+                    skills: {
+                        $map: {
+                            input: "$skillsDetails",
+                            as: "skill",
+                            in: "$$skill.name"
+                        }
+                    },
+                    school: {
+                        $cond: {
+                            if: { $eq: [{ $type: "$school" }, "objectId"] },
+                            then: {
+                                $let: {
+                                    vars: {
+                                        schoolData: { $arrayElemAt: ["$schoolDetails", 0] }
+                                    },
+                                    in: {
+                                        _id: "$$schoolData._id",
+                                        logo: "$$schoolData.logo",
+                                        name: "$$schoolData.name"
+                                    }
+                                }
+                            },
+                            else: {
+                                _id: null,
+                                logo: null,
+                                name: "$school"
+                            }
+                        }
+                    }
+                }
+            }
         ]);
 
         if (!education)

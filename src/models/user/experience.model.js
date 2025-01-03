@@ -3,7 +3,7 @@ const { models } = mongoose;
 
 const experienceSchema = Schema({
     company:{
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.Mixed,
         ref: "Page",
         required: true
     },

@@ -8,6 +8,7 @@ import { emitEvent } from "../../../utils/getMemberSocket.js";
 import { NEW_CATCH_UP } from "../../../utils/events.js";
 import { User } from "../../../models/user/user.model.js";
 import mongoose from "mongoose";
+import { title } from "process";
 
 const createExperience = async (req, res, next) => {
     try {
@@ -88,21 +89,18 @@ const editExperience = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { company, title, startMonth, startYear, endYear="", endMonth="", description, employmentType, location, locationType, skills, isPresent, uploadedMedia } = req?.body;
+        const { company, title, startMonth, startYear, endYear = "", endMonth = "", description, employmentType, location, locationType, skills, isPresent, uploadedMedia } = req?.body;
         const files = req.files || [];
         const { id } = req?.params;
         let prevUploaded = [];
 
-        if(uploadedMedia)
-        {
-            if(uploadedMedia?.length > 0)
-            {
+        if (uploadedMedia) {
+            if (uploadedMedia?.length > 0) {
                 prevUploaded = uploadedMedia.map((media) => {
                     return JSON.parse(media);
                 });
             }
-            else
-            {
+            else {
                 prevUploaded = [JSON.parse(uploadedMedia)];
             }
         }
@@ -111,8 +109,9 @@ const editExperience = async (req, res, next) => {
             return next(new ErrorHandler("All fields are required", 400));
 
         let media = [];
+        let uploadFilesOnCloudinaryPromise = [];
         if (files.length > 0) {
-            const uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
+            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -126,9 +125,9 @@ const editExperience = async (req, res, next) => {
                     return next(new ErrorHandler(error.message, 500));
                 }
             }))
-
-            media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
         }
+
+        media = [...prevUploaded, ...uploadFilesOnCloudinaryPromise];
 
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
@@ -178,14 +177,38 @@ const getAllExperiences = async (req, res, next) => {
             return next(new ErrorHandler("Please login", 400));
 
         const experience = await Experience.aggregate([
-            { $match: { employee: new mongoose.Types.ObjectId(id) } },
+            {
+                $match: { employee: new mongoose.Types.ObjectId(id) }
+            },
+            {
+                $addFields: {
+                    company: {
+                        $cond: {
+                            if: {
+                                $and: [
+                                    { $eq: [{ $type: "$company" }, "string"] },
+                                    {
+                                        $regexMatch: {
+                                            input: "$company",
+                                            regex: /^[a-fA-F0-9]{24}$/,
+                                            options: ""
+                                        }
+                                    }
+                                ]
+                            },
+                            then: { $toObjectId: "$company" },
+                            else: "$company"
+                        }
+                    }
+                }
+            },
             {
                 $lookup: {
                     from: "pages",
                     localField: "company",
                     foreignField: "_id",
-                    as: "companyDetails",
-                },
+                    as: "companyDetails"
+                }
             },
             {
                 $lookup: {
@@ -195,47 +218,59 @@ const getAllExperiences = async (req, res, next) => {
                         {
                             $match: {
                                 $expr: {
-                                    $in: ["$$experienceId", "$reference"],
-                                },
-                            },
-                        },
+                                    $in: ["$$experienceId", "$reference"]
+                                }
+                            }
+                        }
                     ],
-                    as: "skillsDetails",
-                },
-            },
-            {
-                $unwind: "$companyDetails",
+                    as: "skillsDetails"
+                }
             },
             {
                 $project: {
                     _id: 1,
                     title: 1,
-                    company: {
-                        _id: "$companyDetails._id",
-                        name: "$companyDetails.name",
-                        logo: "$companyDetails.logo",
-                    },
-                    skills: {
-                        $map: {
-                            input: "$skillsDetails",
-                            as: "skill",
-                            in: "$$skill.name",
-                        },
-                    },
-                    media:1,
                     startMonth: 1,
                     startYear: 1,
                     endMonth: 1,
                     endYear: 1,
                     isPresent: 1,
+                    description: 1,
                     employmentType: 1,
                     location: 1,
-                    description: 1,
-                    isPresent: 1,
                     locationType: 1,
-                    employee: 1,
-                },
-            },
+                    media: 1,
+                    skills: {
+                        $map: {
+                            input: "$skillsDetails",
+                            as: "skill",
+                            in: "$$skill.name"
+                        }
+                    },
+                    company: {
+                        $cond: {
+                            if: { $eq: [{ $type: "$company" }, "objectId"] },
+                            then: {
+                                $let: {
+                                    vars: {
+                                        companyData: { $arrayElemAt: ["$companyDetails", 0] }
+                                    },
+                                    in: {
+                                        _id: "$$companyData._id",
+                                        logo: "$$companyData.logo",
+                                        name: "$$companyData.name"
+                                    }
+                                }
+                            },
+                            else: {
+                                _id: null,
+                                logo: null,
+                                name: "$company"
+                            }
+                        }
+                    }
+                }
+            }
         ]);
 
         if (!experience)

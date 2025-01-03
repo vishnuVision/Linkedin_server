@@ -13,6 +13,11 @@ const createSkill = async (req, res, next) => {
         if (!name)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
+        const skillExists = await Skill.findOne({ name });
+
+        if (skillExists)
+            return sendResponse(res, 400, "Your skill already exists", false, null, null);
+
         const skill = await Skill.create({ name, isTop, owner: req.user.id });
 
         if (!skill)

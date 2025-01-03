@@ -3,7 +3,7 @@ const { models } = mongoose;
 
 const educationSchema = Schema({
     school:{
-        type: Schema.Types.ObjectId,
+        type: Schema.Types.Mixed,
         ref: "Page",
         required: true
     },
