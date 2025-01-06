@@ -49,9 +49,19 @@ const createEducation = async (req, res, next) => {
             return next(new ErrorHandler("Education not created", 400));
 
         let skillList = [];
-        if (skills?.length > 0) {
+        let allSkills = [];
 
-            const skillsPromise = await Promise.all([...skills]?.map(async (skill) => {
+        if (typeof skills === "string" && skills) {
+            allSkills = [skills];
+        }
+        else
+        {
+            if (skills?.length > 0)
+                allSkills = [...skills];
+        }
+
+        if (allSkills?.length > 0) {
+            const skillsPromise = await Promise.all(allSkills?.map(async (skill) => {
                 const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
                 if (skillObj === null) {
                     const skilldata = await Skill.create({ name: skill, owner: req.user.id, reference: [education._id] });
@@ -88,7 +98,7 @@ const editEducation = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
-        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, isPresent, uploadedMedia, mediatitle, mediaDescription } = req?.body;
+        const { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, isPresent, uploadedMedia, mediatitle, mediaDescription, deletedSkills } = req?.body;
         const files = req.files || [];
         const { id } = req.params;
 
@@ -110,10 +120,55 @@ const editEducation = async (req, res, next) => {
         if (!school || !degree || !id || !fieldOfStudy || !startMonth || !startYear || !grade || !activities || !description)
             return next(new ErrorHandler("All fields are required", 400));
 
+        let skillList = [];
+        let skillForDeletion = [];
+        let otherSkills = [];
+
+        if (typeof deletedSkills === "string" && deletedSkills) {
+            skillForDeletion = [deletedSkills];
+        }
+        else {
+            if (deletedSkills?.length > 0)
+                skillForDeletion = [...deletedSkills];
+        }
+
+        if (skillForDeletion?.length > 0) {
+            await Promise.all(skillForDeletion?.map(async (skill) => {
+                const skillObj = await Skill.findOne({ name: skill, owner: req.user.id }).lean();
+                if (skillObj !== null) {
+                    const skilldata = await Skill.findByIdAndUpdate(skillObj._id, { reference: skillObj.reference.filter((reference) => reference.toString() !== id.toString()) }, { new: true });
+                    return skilldata;
+                }
+            }));
+        }
+
+        if (typeof skills === "string" && skills) {
+            otherSkills = [skills];
+        }
+        else {
+            if (skills?.length > 0)
+                otherSkills = [...skills];
+        }
+
+        if (otherSkills?.length > 0) {
+            const skillsPromise = await Promise.all(otherSkills?.map(async (skill) => {
+                const skillObj = await Skill.findOne({ name: skill, owner: req.user.id });
+                if (skillObj === null) {
+                    const skilldata = await Skill.create({ name: skill, owner: req.user.id, reference: [id] });
+                    return skilldata;
+                }
+                else {
+                    const skilldata = await Skill.findByIdAndUpdate(skillObj._id, { reference: [...skillObj.reference, id] }, { new: true });
+                    return skilldata;
+                }
+            }));
+            skillList = skillsPromise;
+        }
+
         let media = [];
         let uploadFilesOnCloudinaryPromise = [];
         if (files.length > 0) {
-            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file,index) => {
+            uploadFilesOnCloudinaryPromise = await Promise.all(files.map(async (file, index) => {
                 try {
                     const { url } = await uploadOnCloudinary(file.path, next, {
                         transformation: [
@@ -134,7 +189,7 @@ const editEducation = async (req, res, next) => {
         if (files.length > 0 && media.length === 0)
             return next(new ErrorHandler("Images not uploaded", 400));
 
-        const education = await Education.findOneAndUpdate({ alumini: req.user.id, _id: id }, { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, skills, media, alumini: req.user.id, isPresent }, { new: true });
+        const education = await Education.findOneAndUpdate({ alumini: req.user.id, _id: id }, { school, degree, fieldOfStudy, startMonth, startYear, endYear, endMonth, grade, activities, description, media, alumini: req.user.id, isPresent }, { new: true });
 
         if (!education)
             return next(new ErrorHandler("Education not updated", 400));
@@ -190,9 +245,9 @@ const getAllEducations = async (req, res, next) => {
                             if: {
                                 $and: [
                                     { $eq: [{ $type: "$school" }, "string"] },
-                                    { 
+                                    {
                                         $regexMatch: {
-                                            input: "$school", 
+                                            input: "$school",
                                             regex: /^[a-fA-F0-9]{24}$/,
                                             options: ""
                                         }
@@ -220,7 +275,7 @@ const getAllEducations = async (req, res, next) => {
                     pipeline: [
                         {
                             $match: {
-                                $expr: { 
+                                $expr: {
                                     $in: ["$$educationId", "$reference"]
                                 }
                             }
