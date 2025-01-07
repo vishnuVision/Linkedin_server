@@ -11,7 +11,7 @@ const editProfile = async (req, res, next) => {
 
         const { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website, email, phoneNumber, phoneType, address, birthday } = req?.body;
 
-        if (!firstName || !lastName || !additionalName || !pronouns || !bio || !industry || !region || !city || !website)
+    if (!firstName || !lastName || !pronouns || !bio || !industry || !region || !city)
             return sendResponse(res, 400, "All fields are required", false, null, null);
 
         const user = await User.findByIdAndUpdate(req.user.id, { firstName, lastName, additionalName, pronouns, bio, industry, region, city, website, email, phoneNumber, phoneType, address, birthday }, { new: true });

@@ -93,6 +93,9 @@ const editPost = async (req, res, next) => {
 
 const getAllPostDetails = async (req, res, next) => {
     try {
+        const { page = 1 } = req?.query;
+        const limit = 5;
+
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
@@ -160,6 +163,7 @@ const getAllPostDetails = async (req, res, next) => {
                                             firstName: 1,
                                             lastName: 1,
                                             username: 1,
+                                            bio: 1,
                                             avatar: 1
                                         }
                                     }
@@ -227,6 +231,7 @@ const getAllPostDetails = async (req, res, next) => {
                                                         firstName: 1,
                                                         lastName: 1,
                                                         username: 1,
+                                                        bio: 1,
                                                         avatar: 1
                                                     }
                                                 }
@@ -445,13 +450,36 @@ const getAllPostDetails = async (req, res, next) => {
                 $sort: {
                     createdAt: -1
                 }
+            },
+            {
+                $skip: (page - 1) * limit
+            },
+            {
+                $limit: limit
+            }
+        ]);
+
+        const totalDocuments = await Post.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { viewPriority: "anyone" },
+                        {
+                            author: { $in: [...followers, ...following, req.user.id] },
+                            viewPriority: "connection"
+                        }
+                    ]
+                }
+            },
+            {
+                $count: "totalDocuments"
             }
         ]);
 
         if (!post)
             return next(new ErrorHandler("Post not updated Properly!", 400));
 
-        return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
+        return sendResponse(res, 200, "Post fetched Successfully!", true, {data:post, totalDocuments: totalDocuments[0]?.totalDocuments || 0}, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -605,8 +633,8 @@ const listAllPostOfUser = async (req, res, next) => {
 
         const post = await Post.aggregate([
             {
-                $match: 
-            { referenceId: new mongoose.Types.ObjectId(id) },
+                $match:
+                    { referenceId: new mongoose.Types.ObjectId(id) },
             },
             {
                 $lookup: {
@@ -661,7 +689,8 @@ const listAllPostOfUser = async (req, res, next) => {
                                             firstName: 1,
                                             lastName: 1,
                                             username: 1,
-                                            avatar: 1
+                                            avatar: 1,
+                                            bio: 1,
                                         }
                                     }
                                 ],
@@ -728,6 +757,7 @@ const listAllPostOfUser = async (req, res, next) => {
                                                         firstName: 1,
                                                         lastName: 1,
                                                         username: 1,
+                                                        bio: 1,
                                                         avatar: 1
                                                     }
                                                 }
