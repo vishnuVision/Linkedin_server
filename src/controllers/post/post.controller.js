@@ -625,6 +625,8 @@ const listAllPostOfUser = async (req, res, next) => {
         if (!req.user)
             return next(new ErrorHandler("Please login", 400));
 
+        const { page = 1 } = req?.query;
+        const limit = 5;
         const { id } = req?.params;
         const { isAuthor = false } = req?.body;
 
@@ -837,13 +839,28 @@ const listAllPostOfUser = async (req, res, next) => {
                 $sort: {
                     createdAt: -1
                 }
+            },
+            {
+                $skip: (page - 1) * limit
+            },
+            {
+                $limit: limit
             }
         ]);
 
         if (!post)
             return next(new ErrorHandler("Post not found!", 400));
 
-        return sendResponse(res, 200, "Post fetched Successfully!", true, post, null);
+        const totalDocuments = await Post.aggregate([
+            {
+                $match:{ referenceId: new mongoose.Types.ObjectId(id) },
+            },
+            {
+                $count: "totalDocuments"
+            }
+        ]);
+
+        return sendResponse(res, 200, "Post fetched Successfully!", true, {data: post, totalDocuments: totalDocuments[0].totalDocuments}, null);
     } catch (error) {
         return next(new ErrorHandler(error.message, 500));
     }
